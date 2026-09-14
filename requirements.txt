@@ -1,0 +1,22 @@
+# SIH26142 Dependencies
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+pillow>=10.0.0
+requests>=2.31.0
+python-multipart>=0.0.6
+
+# PyTorch (for CPU / GPU inference)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Remote Sensing & Geospatial
+python-dotenv>=1.0.0
+sentinelhub>=3.11.0
+scikit-image>=0.22.0
+tifffile>=2023.0.0
+pyiqa>=0.1.16
+leafmap>=0.30.0
+gdal>=3.8.0

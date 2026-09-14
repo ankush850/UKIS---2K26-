@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIH26142 — Super Resolution Mapping (SRM) | Sentinel-2 (10m → 2.5m)</title>
+    <!-- Google Fonts: IBM Plex Sans + IBM Plex Mono + legacy fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Montserrat:wght@700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <!-- Leaflet & Leaflet.draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+    <link rel="stylesheet" href="/static/styles.css?v=20260913_spectral_v5">
+    <style>
+        /* Embedded Aerospace Coordinates Bar Protection */
+        .coord-search-bar {
+            display: flex !important;
+            align-items: center !important;
+            background: rgba(10, 15, 29, 0.9) !important;
+            border: 1px solid rgba(0, 229, 255, 0.28) !important;
+            border-radius: 7px !important;
+            padding: 3px 4px !important;
+            margin-top: 0.5rem !important;
+            gap: 5px !important;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+            transition: all 0.2s ease !important;
+        }
+        .coord-search-bar:focus-within {
+            border-color: #00e5ff !important;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3), inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+        }
+        .coord-input-wrap {
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            flex: 1 !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            padding: 4px 7px !important;
+            border-radius: 5px !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            min-width: 0 !important;
+        }
+        .coord-input-wrap:focus-within {
+            background: rgba(0, 229, 255, 0.06) !important;
+            border-color: rgba(0, 229, 255, 0.4) !important;
+        }
+        .coord-prefix {
+            font-size: 0.65rem !important;
+            font-weight: 700 !important;
+            color: #00e5ff !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            user-select: none !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            flex-shrink: 0 !important;
+        }
+        .coord-text-input {
+            width: 100% !important;
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+            color: #f3f4f6 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.74rem !important;
+            font-weight: 500 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-width: 0 !important;
+        }
+        .coord-text-input::placeholder {
+            color: #64748b !important;
+        }
+        .coord-separator {
+            color: rgba(255, 255, 255, 0.2) !important;
+            font-size: 0.72rem !important;
+            user-select: none !important;
+            font-weight: 300 !important;
+            flex-shrink: 0 !important;
+        }
+        .btn-coord-jump {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 3px !important;
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.22), rgba(59, 130, 246, 0.28)) !important;
+            border: 1px solid rgba(0, 229, 255, 0.45) !important;
+            color: #00e5ff !important;
+            padding: 0 9px !important;
+            height: 27px !important;
+            border-radius: 5px !important;
+            font-size: 0.72rem !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            flex-shrink: 0 !important;
+        }
+        .btn-coord-jump:hover {
+            background: #00e5ff !important;
+            color: #05080f !important;
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.6) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* Building Footprints & Verified Cross-Check UI Styles */
+        .metric-tile-purple {
+            border-color: rgba(168, 85, 247, 0.35) !important;
+            background: rgba(168, 85, 247, 0.08) !important;
+        }
+        .metric-val-purple {
+            color: #c084fc !important;
+            text-shadow: 0 0 12px rgba(192, 132, 252, 0.45);
+        }
+        .card-badge-purple {
+            background: rgba(168, 85, 247, 0.18) !important;
+            border: 1px solid rgba(168, 85, 247, 0.5) !important;
+            color: #d8b4fe !important;
+        }
+        .pill-dot-purple {
+            background: #a855f7 !important;
+            box-shadow: 0 0 8px #a855f7 !important;
+        }
+        .callout-box-purple {
+            background: rgba(168, 85, 247, 0.08);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            color: #e9d5ff;
+        }
+        .callout-box-slate {
+            background: rgba(100, 116, 139, 0.1);
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-page">
+        <video autoplay muted loop playsinline class="landing-video-bg">
+            <source src="/static/landingpage.mp4" type="video/mp4">
+        </video>
+        <div class="landing-ambient-bg"></div>
+        <div class="landing-content">
+            <div class="landing-badges">
+                <span class="l-badge"><span class="badge-dot gold"></span> Copernicus CDSE Linked</span>
+                <span class="l-badge"><span class="badge-dot purple"></span> Blockchain Verified (Polygon Amoy)</span>
+                <span class="l-badge"><span class="badge-dot blue"></span> Hallucination-Aware USP</span>
+            </div>
+            
+            <h1 class="landing-title">NETRA :<br> <span class="gold-text">Sentinel-2</span><br><span class="blue-text">Super-Resolution</span></h1>
+            <p class="landing-subtitle">Neural Enhancement for Terrain & Resolution Amplification.<br>Delivering 16x pixel density with verifiable, hallucination-aware uncertainty.</p>
+            
+            <div class="landing-cards">
+                <div class="l-card">
+                    <div class="l-card-icon gold-text">16x</div>
+                    <div class="l-card-text">Resolution Gain</div>
+                    <div class="l-card-svg gold-text"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 12 12 17 22 12"></polyline><polyline points="2 17 12 22 22 17"></polyline></svg></div>
+                </div>
+                <div class="l-card">
+                    <div class="l-card-icon blue-text">MC</div>
+                    <div class="l-card-text">Monte-Carlo<br>Uncertainty Scoring</div>
+                    <div class="l-card-svg blue-text"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
+                </div>
+                <div class="l-card">
+                    <div class="l-card-icon blue-text">AI</div>
+                    <div class="l-card-text">Automatic<br>Infrastructure Detection</div>
+                    <div class="l-card-svg blue-text"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></div>
+                </div>
+                <div class="l-card">
+                    <div class="l-card-icon blue-text">GIS</div>
+                    <div class="l-card-text">GeoJSON Export with<br>Confidence Metrics</div>
+                    <div class="l-card-svg blue-text"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                </div>
+            </div>
+
+            <button id="btn-start-analysis" class="btn-start-analysis">
+                Start Analysis &rarr;
+            </button>
+
+            <div class="landing-footer">
+                <div class="footer-line"></div>
+                <span>HIGHER RESOLUTION. A CLEARER TOMORROW.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div id="dashboard-container" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+    <!-- Top Navigation / Header -->
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo-badge" title="SIH26142"></div>
+            <div class="brand-text">
+                <h1>GEO-SRM <span>· Sentinel-2</span></h1>
+                <p class="subtitle">Deep Learning Super-Resolution (10m → 2.5m) with Hallucination-Aware Uncertainty USP
+                </p>
+            </div>
+        </div>
+        <!-- Top Navigation View Switcher (v4 mode pills) -->
+        <nav class="top-nav-tabs" aria-label="Main Application Views">
+            <button type="button" id="nav-btn-sr" class="top-nav-btn active" title="Super-Resolution, Uncertainty & Infrastructure" onclick="switchTopView('sr')">
+                <span class="top-nav-icon">🛰️</span>
+                <span class="top-nav-title">Super-Resolution &amp; Trust</span>
+            </button>
+            <button type="button" id="nav-btn-spectral" class="top-nav-btn" title="Multi-Band Spectral Indices & Disaster Analysis" onclick="switchTopView('spectral')">
+                <span class="top-nav-icon">🌱</span>
+                <span class="top-nav-title">Spectral &amp; Disaster Analysis</span>
+                <span class="top-nav-badge">NEW</span>
+            </button>
+        </nav>
+        <script>
+            window.switchTopView = function(viewName) {
+                console.log('[GEO-SRM] Immediate switchTopView to:', viewName);
+                var btnSr = document.getElementById("nav-btn-sr");
+                var btnSpectral = document.getElementById("nav-btn-spectral");
+                var srContainer = document.getElementById("view-sr-mapping");
+                var spectralContainer = document.getElementById("view-spectral-analysis");
+
+                if (viewName === "spectral") {
+                    if (btnSr) btnSr.classList.remove("active");
+                    if (btnSpectral) btnSpectral.classList.add("active");
+                    if (srContainer) {
+                        srContainer.classList.add("hidden");
+                        srContainer.style.setProperty("display", "none", "important");
+                    }
+                    if (spectralContainer) {
+                        spectralContainer.classList.remove("hidden");
+                        spectralContainer.style.setProperty("display", "block", "important");
+                    }
+                } else {
+                    if (btnSpectral) btnSpectral.classList.remove("active");
+                    if (btnSr) btnSr.classList.add("active");
+                    if (spectralContainer) {
+                        spectralContainer.classList.add("hidden");
+                        spectralContainer.style.setProperty("display", "none", "important");
+                    }
+                    if (srContainer) {
+                        srContainer.classList.remove("hidden");
+                        srContainer.style.setProperty("display", "block", "important");
+                    }
+                }
+
+                if (typeof window.onViewSwitched === "function") {
+                    window.onViewSwitched(viewName);
+                } else {
+                    window._pendingViewSwitch = viewName;
+                }
+            };
+        </script>
+
+        <div class="header-actions">
+            <div class="system-status">
+                <span class="status-indicator active"></span>
+                <span class="status-label">Copernicus CDSE Linked</span>
+            </div>
+            <button id="btn-open-blockchain" type="button" class="btn-blockchain-badge" title="Polygon Amoy Blockchain Provenance & Version Chain">
+                <span class="chain-dot-purple"></span>
+                <span class="chain-label">Polygon Amoy</span>
+                <span class="chain-version-tag" id="header-chain-version">v1 Verified</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- v4 Sub-Tab Navigation -->
+    <nav class="dash-tabs" id="dash-tabs">
+        <button class="active" data-dash-page="viewer"><span class="tab-n">01</span>Viewer</button>
+        <button data-dash-page="config"><span class="tab-n">02</span>Configuration</button>
+        <button data-dash-page="analytics"><span class="tab-n">03</span>Analytics &amp; provenance</button>
+    </nav>
+
+    <!-- ======== DASH PAGE 1: VIEWER (SR + Spectral views) ======== -->
+    <div class="dash-page active" id="dash-page-viewer">
+
+    <!-- View 1: Super-Resolution & Trust Workspace -->
+    <div id="view-sr-mapping" class="app-view-container active">
+    <main class="workspace-grid">
+        <!-- Sidebar Controls & AOI -->
+        <aside class="sidebar-panel" aria-label="Pipeline Controls and AOI Selection">
+            <div class="panel-card">
+                <h3 class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    Area of Interest (AOI)
+                </h3>
+                <p class="panel-desc">Select a preset Sentinel-2 target scene or draw on the interactive map below.</p>
+                <div class="presets-container" id="presets-list">
+                    <!-- Presets injected by JS -->
+                </div>
+
+                <div class="map-wrapper">
+                    <div id="aoi-map"></div>
+                    <div class="map-overlay-badge" id="aoi-coords-badge">Lat: 30.575 | Lon: 75.330</div>
+                </div>
+
+                <!-- Unified Aerospace Coordinates Nav Bar -->
+                <div class="coord-search-bar" id="coords-entry-box">
+                    <div class="coord-input-wrap">
+                        <span class="coord-prefix">LAT</span>
+                        <input type="text" inputmode="decimal" id="input-custom-lat" class="coord-text-input" value="30.5750" placeholder="30.5750" title="Latitude (-90 to 90)">
+                    </div>
+                    <div class="coord-separator">|</div>
+                    <div class="coord-input-wrap">
+                        <span class="coord-prefix">LON</span>
+                        <input type="text" inputmode="decimal" id="input-custom-lon" class="coord-text-input" value="75.3300" placeholder="75.3300" title="Longitude (-180 to 180)">
+                    </div>
+                    <button id="btn-goto-coords" type="button" class="btn-coord-jump" title="Jump to coordinates &amp; fetch Sentinel-2 tile">
+                        <span>Jump</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <button id="btn-draw-rect" type="button" class="btn btn-sm btn-outline btn-block-mt">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M9 3v18" />
+                        <path d="M15 3v18" />
+                    </svg>
+                    Draw Free Bounding Box on Map
+                </button>
+            </div>
+
+            <!-- Pipeline Parameters -->
+            <div class="panel-card">
+                <h3 class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="21" x2="4" y2="14" />
+                        <line x1="4" y1="10" x2="4" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12" y2="3" />
+                        <line x1="20" y1="21" x2="20" y2="16" />
+                        <line x1="20" y1="12" x2="20" y2="3" />
+                        <line x1="1" y1="14" x2="7" y2="14" />
+                        <line x1="9" y1="8" x2="15" y2="8" />
+                        <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
+                    Model &amp; Inference Engine
+                </h3>
+                <div class="form-group">
+                    <label>Architecture</label>
+                    <select id="select-model" class="custom-select">
+                        <option value="hat" selected>HAT (Hybrid Attention Transformer — Sharpest Edges)</option>
+                        <option value="ldsr_s2" title="ESA Latent Diffusion Model. Produces sharper output with high textural detail, but requires closer scrutiny of the uncertainty/confidence score as diffusion models can generate convincing but fabricated structures.">LDSR-S2 (Diffusion — High Detail)</option>
+                        <option value="srmnet">SRM-Net (Residual Attention + MC-Dropout)</option>
+                        <option value="carn">CARN (Cascading Residual Network — Conservative)</option>
+                    </select>
+                    <div id="ldsr-diffusion-notice" class="diffusion-warning-box hidden" style="margin-top: 0.45rem; padding: 0.45rem 0.65rem; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; font-size: 0.73rem; color: #fde68a;">
+                        <span style="margin-right: 4px;">⚠️</span>
+                        <strong>Diffusion Detail Advisory:</strong> LDSR-S2 produces high textural sharpness. Always inspect the Confidence HUD and uncertainty map to guard against generative hallucination.
+                    </div>
+                </div>
+
+                <div class="form-group edge-enhancement-box" style="border: 1px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.08);">
+                    <div>
+                        <label class="edge-enhancement-title" style="color: #c084fc;">Stage 2: Real-ESRGAN Sharpening (outscale=1)</label>
+                        <span class="edge-enhancement-desc">RealESRGAN_x4plus (RRDBNet) preview pass • Metrics stay on pure HAT</span>
+                    </div>
+                    <input type="checkbox" id="check-realesrgan-sharpen" class="checkbox-cyan">
+                </div>
+
+                <div class="form-group">
+                    <label>Target Resolution / Scale</label>
+                    <select id="select-scale" class="custom-select">
+                        <option value="4" selected>4x Upscaling (10.0m → 2.5m GSD - Sub-4m Target)</option>
+                        <option value="2">2x Upscaling (10.0m → 5.0m GSD)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Acquisition Mode</label>
+                    <div class="mode-toggles acquisition-mode-toggles">
+                        <button type="button" class="tab-btn tab-btn-compact active" id="btn-mode-single">Single
+                            Pass</button>
+                        <button type="button" class="tab-btn tab-btn-compact" id="btn-mode-multi">Multi-Temporal (3-Pass
+                            Fusion)</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-with-val">
+                        <label>MC-Dropout Passes (Uncertainty)</label>
+                        <span class="range-val" id="val-mc-samples">8 passes</span>
+                    </div>
+                    <input type="range" id="slider-mc-samples" min="4" max="16" step="2" value="8"
+                        class="custom-slider">
+                </div>
+
+                <div class="custom-upload-box">
+                    <input type="file" id="file-upload" accept="image/*,.tif" hidden>
+                    <button type="button" class="btn btn-outline" id="btn-trigger-upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        Upload Custom GeoTIFF / Tile
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Visualization Stage -->
+        <section class="viewer-stage">
+            <div class="viewer-toolbar">
+                <div class="mode-toggles">
+                    <button type="button" class="tab-btn active" id="tab-split">Split Slider View</button>
+                    <button type="button" class="tab-btn" id="tab-side">Side-by-Side View</button>
+                </div>
+
+                <!-- OpenSeadragon Deep-Zoom Controls -->
+                <div class="osd-zoom-controls">
+                    <span class="osd-zoom-label">Zoom:</span>
+                    <button type="button" id="btn-zoom-in" class="btn-zoom" title="Zoom In (+)">➕</button>
+                    <button type="button" id="btn-zoom-out" class="btn-zoom" title="Zoom Out (-)">➖</button>
+                    <button type="button" id="btn-zoom-reset" class="btn-zoom" title="Reset Zoom (Fit)">1:1</button>
+                    <span id="zoom-level-badge" class="zoom-level-badge">1.0x</span>
+                </div>
+
+                <div class="usp-toolbar-controls">
+                    <div class="toggle-pill" id="toggle-confidence-pill">
+                        <span class="pill-dot"></span>
+                        <span class="pill-text">USP Confidence Heatmap</span>
+                    </div>
+                    <div class="opacity-control" id="confidence-opacity-wrapper">
+                        <span>Opacity</span>
+                        <input type="range" id="slider-confidence-opacity" min="0.1" max="1.0" step="0.05" value="0.75"
+                            class="mini-slider">
+                    </div>
+
+                    <!-- Infrastructure Detection Toggle Pill -->
+                    <div class="toggle-pill toggle-pill-infra" id="toggle-infra-pill"
+                        title="Live AI Infrastructure Detection: Buildings &amp; Roads (SamGeo)">
+                        <span class="pill-dot pill-dot-purple"></span>
+                        <span class="pill-text">Buildings &amp; Roads</span>
+                    </div>
+                    <div class="opacity-control" id="infra-opacity-wrapper">
+                        <span>Opacity</span>
+                        <input type="range" id="slider-infra-opacity" min="0.1" max="1.0" step="0.05" value="0.85"
+                            class="mini-slider">
+                    </div>
+
+                    <!-- Cloud Mask Occlusion Toggle Pill -->
+                    <div class="toggle-pill toggle-pill-cloud" id="toggle-cloud-pill"
+                        title="Cloud Mask: Optical Occlusion &amp; Uncertainty Boundaries">
+                        <span class="pill-dot pill-dot-cloud"></span>
+                        <span class="pill-text">Cloud Mask (Occluded)</span>
+                    </div>
+                    <div class="opacity-control" id="cloud-opacity-wrapper">
+                        <span>Opacity</span>
+                        <input type="range" id="slider-cloud-opacity" min="0.1" max="1.0" step="0.05" value="0.80"
+                            class="mini-slider">
+                    </div>
+                </div>
+
+                <div class="export-actions">
+                    <button type="button" id="btn-download-sr" class="btn btn-sm btn-outline">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Export SR (2.5m)
+                    </button>
+                    <button type="button" id="btn-download-conf" class="btn btn-sm btn-outline">
+                        Export Confidence Map
+                    </button>
+                    <button type="button" id="btn-download-geojson" class="btn btn-sm btn-outline btn-geojson-export">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Export GeoJSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- High Cloud Cover Warning Alert Banner -->
+            <div class="cloud-warning-banner hidden" id="cloud-warning-banner">
+                <div class="banner-content">
+                    <span class="banner-icon">⚠️</span>
+                    <span id="cloud-warning-text">High cloud cover detected (&gt;20%). Optical inference suppressed in cloud regions to prevent hallucination.</span>
+                </div>
+                <button type="button" class="btn-dismiss-warning" id="btn-dismiss-cloud-warning" title="Dismiss warning">&times;</button>
+            </div>
+
+            <!-- In-App Non-Blocking Notification Banner (Replaces native alert popups) -->
+            <div class="cloud-warning-banner in-app-banner hidden" id="in-app-banner">
+                <div class="banner-content">
+                    <span class="banner-icon" id="in-app-banner-icon">🛰️</span>
+                    <span id="in-app-banner-text">Notification message</span>
+                </div>
+                <button type="button" class="btn-dismiss-warning" id="btn-dismiss-in-app-banner" title="Dismiss notification">&times;</button>
+            </div>
+
+            <!-- Comparison Canvas Container with Synchronized OpenSeadragon Viewports -->
+            <div class="canvas-viewport" id="canvas-viewport">
+                <!-- Split-Slider View with Synchronized OpenSeadragon Viewports -->
+                <div class="split-slider-container" id="slider-container">
+                    <!-- Base LR OpenSeadragon Viewport (Left) -->
+                    <div class="osd-wrapper osd-lr-wrapper" id="osd-lr-wrapper">
+                        <div id="osd-lr" class="osd-viewport"></div>
+                        <div class="img-tag tag-lr">Input: Sentinel-2 L2A (10m)</div>
+                    </div>
+
+                    <!-- Super Resolved OpenSeadragon Viewport (Right / Interactive Clipped) -->
+                    <div class="osd-wrapper osd-sr-wrapper" id="sr-wrapper">
+                        <div id="osd-sr" class="osd-viewport"></div>
+                        <div class="img-tag tag-sr" id="tag-sr">Output: HAT (2.5m)</div>
+                    </div>
+
+                    <!-- Interactive Divider Bar -->
+                    <div class="slider-handle" id="slider-handle">
+                        <div class="handle-line"></div>
+                        <div class="handle-grip">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side-by-Side Alternative View Container with OpenSeadragon -->
+                <div class="side-by-side-container hidden" id="side-by-side-container">
+                    <div class="side-panel">
+                        <div class="panel-header" id="header-side-lr">Input: Sentinel-2 L2A (10m)</div>
+                        <div class="side-osd-box" id="osd-side-lr"></div>
+                    </div>
+                    <div class="side-panel">
+                        <div class="panel-header" id="header-side-sr">Output: HAT (2.5m)</div>
+                        <div class="side-osd-box" id="osd-side-sr"></div>
+                    </div>
+                    <div class="side-panel">
+                        <div class="panel-header" id="header-side-hr">Reference: Ground Truth HR (1.5m)</div>
+                        <div class="side-osd-box" id="osd-side-hr"></div>
+                    </div>
+                </div>
+
+                <!-- Live Loading Indicator -->
+                <div class="loading-scrim hidden" id="loading-scrim">
+                    <div class="spinner-core"></div>
+                    <div class="loading-text">Processing Super-Resolution &amp; MC-Dropout Passes...</div>
+                    <div class="loading-sub">Benchmarking spectral consistency with opensr-test</div>
+                </div>
+            </div>
+
+            <!-- Heatmap Legend & Hover Inspector -->
+            <div class="viewer-footer">
+
+                <div class="confidence-legend">
+                    <span class="legend-label">Hallucination Risk / Confidence Scale:</span>
+                    <div class="legend-bar"></div>
+                    <div class="legend-ticks">
+                        <span>0% (Hallucination Risk)</span>
+                        <span>50% (Inferred)</span>
+                        <span>100% (Observed Ground Truth)</span>
+                        <span class="legend-cloud-tick">▦ Hatched Slate: Cloud Occluded (0%)</span>
+                    </div>
+                </div>
+                <div class="infra-legend" id="infra-legend">
+                    <span class="infra-legend-title infra-legend-heading">Layers:</span>
+                    <span class="infra-item infra-item-purple"><span class="infra-dot infra-dot-purple"></span>
+                        Building Footprints</span>
+                    <span class="infra-item infra-item-cyan"><span class="infra-dot infra-dot-cyan"></span>
+                        Road Corridors</span>
+                </div>
+                <div class="inspector-badge">
+                    <span id="inspector-coords">Resolution Gain: 30.0m → 2.5m (16x pixel density)</span>
+                    <span id="inspector-dims" class="inspector-dims-text">LR: 128×128 px → SR: 512×512 px (Genuinely 4x
+                        array expansion)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Scientific Metrics HUD -->
+        <aside class="hud-panel" aria-label="Scientific Metrics and Verification HUD">
+            <div class="panel-card usp-card">
+                <div class="panel-card-header">
+                    <h3 class="panel-title">Hallucination &amp; Uncertainty</h3>
+                    <span class="card-badge">THE USP</span>
+                </div>
+                <p class="panel-desc">Scientific trust verification via ESA opensr-test &amp; Monte-Carlo variance.</p>
+
+                <div class="metric-grid">
+                    <div class="metric-tile highlight">
+                        <div class="metric-val" id="metric-confidence">--%</div>
+                        <div class="metric-lbl">Avg Confidence Score</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-uncertainty">--</div>
+                        <div class="metric-lbl">MC-Dropout Variance</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-sam">--°</div>
+                        <div class="metric-lbl">Spectral Angle (SAM)</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-cycle">--</div>
+                        <div class="metric-lbl">Cycle Consistency MAE</div>
+                    </div>
+                </div>
+
+                <div class="callout-box">
+                    <strong>Why this matters:</strong> Judges and decision makers can verify whether fine boundaries are
+                    physically observed by Sentinel-2 or synthesized by the neural generator.
+                </div>
+            </div>
+
+            <!-- Paired Reference Benchmarks HUD (Active when paired ground truth exists) -->
+            <div class="panel-card" id="panel-validation-paired">
+                <div class="panel-card-header">
+                    <h3 class="panel-title">Validation vs HR Reference</h3>
+                    <span class="card-badge card-badge-cyan">PAIRED GROUND TRUTH</span>
+                </div>
+                <p class="panel-desc panel-desc-secondary">
+                    Full-reference pixel and structural fidelity benchmarks evaluated against paired SPOT 6/7 1.5m
+                    satellite optical ground truth.
+                </p>
+                <div class="metric-grid" id="grid-validation-metrics">
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-psnr">-- dB</div>
+                        <div class="metric-lbl">PSNR (vs HR Reference)</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-ssim">--</div>
+                        <div class="metric-lbl">SSIM Structure Index</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-ergas">--</div>
+                        <div class="metric-lbl">ERGAS Synthesis Error</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val" id="metric-runtime">-- ms</div>
+                        <div class="metric-lbl">Inference Latency</div>
+                    </div>
+                </div>
+                <div class="coreg-status-banner" id="coreg-status-banner" style="margin-top: 10px; padding: 8px 12px; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div id="coreg-shift-status" style="color: #38bdf8; font-family: monospace;">AROSICS Alignment: Ready</div>
+                    <div id="metric-computed-at" style="color: #94a3b8; font-family: monospace;">Execution: Ready</div>
+                </div>
+            </div>
+
+            <!-- No-Reference Quality Assessment HUD (Active when scene is unpaired / custom) -->
+            <div class="panel-card panel-card-nr" id="panel-validation-nr">
+                <div class="panel-card-header">
+                    <h3 class="panel-title panel-title-purple">No-Reference Quality Assessment</h3>
+                    <span class="card-badge card-badge-purple">NO-REFERENCE IQA</span>
+                </div>
+
+                <div id="validation-no-ref-banner" class="validation-nr-banner">
+                    <div class="banner-heading-purple">
+                        <span class="banner-icon-lg">⚠️</span> Unpaired Scene Notification
+                    </div>
+                    No ground truth reference available for this AOI — validation metrics require a paired
+                    high-resolution reference tile. Activating Blind/No-Reference Image Quality Assessment (pyiqa NIQE
+                    &amp; BRISQUE) + opensr-test trust metrics.
+                </div>
+
+                <div class="metric-grid" id="grid-nr-metrics">
+                    <div class="metric-tile highlight metric-tile-purple">
+                        <div class="metric-val metric-val-purple" id="metric-nr-niqe">--</div>
+                        <div class="metric-lbl">NIQE Score (pyiqa)</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val metric-val-sky" id="metric-nr-brisque">--</div>
+                        <div class="metric-lbl">BRISQUE Score (pyiqa)</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val metric-val-emerald" id="metric-nr-confidence">--%</div>
+                        <div class="metric-lbl">Confidence Trust</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val metric-val-yellow" id="metric-nr-cycle">--</div>
+                        <div class="metric-lbl">Cycle Consistency MAE</div>
+                    </div>
+                </div>
+
+                <div class="callout-box callout-box-purple">
+                    <strong>Reference-Free Verification:</strong> Evaluates natural scene statistics (NSS) directly on
+                    SR output via <code>pyiqa</code> (IQA-PyTorch) &amp; <code>opensr-test</code>.
+                </div>
+            </div>
+
+            <!-- Detected Infrastructure Analytics (Section 12) -->
+            <div class="panel-card panel-card-amber" id="panel-infrastructure">
+                <div class="panel-card-header">
+                    <h3 class="panel-title panel-title-amber">Detected Infrastructure</h3>
+                    <span class="card-badge card-badge-cyan">MULTI-CLASS EXTRACTION</span>
+                </div>
+                <p class="panel-desc">Automatic live AI extraction of building footprints &amp; road networks on &lt;4m SRM output.</p>
+
+                <div class="metric-grid">
+                    <div class="metric-tile highlight metric-tile-purple">
+                        <div class="metric-val metric-val-purple" id="metric-buildings">--</div>
+                        <div class="metric-lbl">Building Footprints</div>
+                    </div>
+                    <div class="metric-tile highlight">
+                        <div class="metric-val metric-val-cyan" id="metric-roads">-- km</div>
+                        <div class="metric-lbl">Road Corridors</div>
+                    </div>
+                    <div class="metric-tile">
+                        <div class="metric-val metric-val-emerald" id="metric-infra-conf">--%</div>
+                        <div class="metric-lbl">Detection Confidence</div>
+                    </div>
+                </div>
+
+                <div class="callout-box callout-box-purple" style="margin-top: 10px;">
+                    <strong>GIS Vector Export:</strong> Full vector topology exported as GeoJSON with per-feature
+                    confidence metrics for GIS analysis.
+                </div>
+            </div>
+
+        </aside>
+    </main>
+    </div><!-- /view-sr-mapping -->
+
+    <!-- View 2: Dedicated Spectral & Disaster Analysis Workspace -->
+    <div id="view-spectral-analysis" class="app-view-container hidden">
+        <main class="workspace-grid spectral-workspace-grid">
+            <!-- Left Sidebar: Replicated Shared AOI Selection -->
+            <aside class="sidebar-panel" aria-label="Spectral Analysis AOI Selection">
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                            </svg>
+                            Area of Interest (AOI)
+                        </h3>
+                        <span class="card-badge card-badge-cyan">SHARED AOI</span>
+                    </div>
+                    <p class="panel-desc">Select a preset target scene or jump to custom coordinates. Shares identical pipeline and cache with Super-Resolution.</p>
+                    
+                    <div class="presets-container" id="spectral-presets-list">
+                        <!-- Presets injected or synced by JS -->
+                    </div>
+
+                    <div class="map-wrapper">
+                        <div id="spectral-aoi-map"></div>
+                        <div class="map-overlay-badge" id="spectral-aoi-coords-badge">Lat: 30.575 | Lon: 75.330</div>
+                    </div>
+
+                    <!-- Coordinates Nav Bar -->
+                    <div class="coord-search-bar" id="spectral-coords-entry-box">
+                        <div class="coord-input-wrap">
+                            <span class="coord-prefix">LAT</span>
+                            <input type="text" inputmode="decimal" id="spectral-input-lat" class="coord-text-input" value="30.5750" placeholder="30.5750">
+                        </div>
+                        <div class="coord-separator">|</div>
+                        <div class="coord-input-wrap">
+                            <span class="coord-prefix">LON</span>
+                            <input type="text" inputmode="decimal" id="spectral-input-lon" class="coord-text-input" value="75.3300" placeholder="75.3300">
+                        </div>
+                        <button id="spectral-btn-goto-coords" type="button" class="btn-coord-jump" title="Jump to coordinates">
+                            <span>Jump</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button id="spectral-btn-draw-rect" type="button" class="btn btn-sm btn-outline btn-block-mt">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <path d="M9 3v18" />
+                            <path d="M15 3v18" />
+                        </svg>
+                        Draw Free Bounding Box on Map
+                    </button>
+                </div>
+
+                <!-- Spectral Pipeline Telemetry & Status -->
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                            Scientific Data Path
+                        </h3>
+                        <span class="card-badge card-badge-emerald">ZERO RE-RUN</span>
+                    </div>
+                    <p class="panel-desc">Scientific index calculation directly utilizes the raw multispectral float32 reflectance array (never display-graded RGB).</p>
+                    <div class="spectral-pipeline-meta">
+                        <div class="spectral-meta-row">
+                            <span class="spectral-meta-label">Active Model:</span>
+                            <span class="spectral-meta-val" id="spectral-meta-model">HAT (2.5m GSD)</span>
+                        </div>
+                        <div class="spectral-meta-row">
+                            <span class="spectral-meta-label">Computation:</span>
+                            <span class="spectral-meta-val cyan">awesome-spectral-indices (spyndex)</span>
+                        </div>
+                        <div class="spectral-meta-row">
+                            <span class="spectral-meta-label">Data Fidelity:</span>
+                            <span class="spectral-meta-val green">Raw BOA Reflectance (Unaltered)</span>
+                        </div>
+                        <div class="spectral-meta-row">
+                            <span class="spectral-meta-label">Active AOI:</span>
+                            <span class="spectral-meta-val" id="spectral-meta-aoi">Punjab Agriculture</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Center Visualization Stage -->
+            <section class="viewer-stage">
+                <!-- Primary Spectral Modes Navigation Header -->
+                <div class="spectral-primary-toolbar">
+                    <div class="spectral-mode-cards-strip" id="spectral-mode-cards-strip">
+                        <button type="button" class="spectral-mode-tab" data-mode="true_color" id="sm-btn-true_color">
+                            <span class="sm-tab-icon">🌿</span>
+                            <div class="sm-tab-text">
+                                <span class="sm-tab-title">True Color</span>
+                                <span class="sm-tab-sub">Natural Surface (RGB)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="spectral-mode-tab active" data-mode="ndvi" id="sm-btn-ndvi">
+                            <span class="sm-tab-icon">🌱</span>
+                            <div class="sm-tab-text">
+                                <span class="sm-tab-title">NDVI — Crop Health</span>
+                                <span class="sm-tab-sub">Canopy Vigor (NIR/Red)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="spectral-mode-tab" data-mode="ndwi" id="sm-btn-ndwi">
+                            <span class="sm-tab-icon">💧</span>
+                            <div class="sm-tab-text">
+                                <span class="sm-tab-title">NDWI — Flood &amp; Water</span>
+                                <span class="sm-tab-sub">Inundation (Green/NIR)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="spectral-mode-tab" data-mode="nbr" id="sm-btn-nbr">
+                            <span class="sm-tab-icon">🔥</span>
+                            <div class="sm-tab-text">
+                                <span class="sm-tab-title">NBR — Fire Damage</span>
+                                <span class="sm-tab-sub">Burn Scars (NIR/SWIR2)</span>
+                            </div>
+                        </button>
+                        <button type="button" class="spectral-mode-tab" data-mode="ndbi" id="sm-btn-ndbi">
+                            <span class="sm-tab-icon">🏢</span>
+                            <div class="sm-tab-text">
+                                <span class="sm-tab-title">NDBI — Urban Extent</span>
+                                <span class="sm-tab-sub">Built-Up (SWIR1/NIR)</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="spectral-sub-toolbar">
+                        <div class="mode-toggles">
+                            <button type="button" class="tab-btn active" id="tab-spectral-split">Split Slider (10m vs 2.5m)</button>
+                            <button type="button" class="tab-btn" id="tab-spectral-single">Single 2.5m Deep-Zoom</button>
+                        </div>
+                        <div class="osd-zoom-controls">
+                            <span class="osd-zoom-label">Zoom:</span>
+                            <button type="button" id="btn-spectral-zoom-in" class="btn-zoom" title="Zoom In (+)">➕</button>
+                            <button type="button" id="btn-spectral-zoom-out" class="btn-zoom" title="Zoom Out (-)">➖</button>
+                            <button type="button" id="btn-spectral-zoom-reset" class="btn-zoom" title="Reset Zoom (Fit)">1:1</button>
+                            <span id="spectral-zoom-badge" class="zoom-level-badge">1.0x</span>
+                        </div>
+                        <div class="export-actions">
+                            <button type="button" id="btn-spectral-download-png" class="btn btn-sm btn-outline">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Export Spectral PNG
+                            </button>
+                            <button type="button" id="btn-spectral-download-tif" class="btn btn-sm btn-outline btn-geotiff-export">
+                                Export GeoTIFF (2.5m Raw)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Viewport Container -->
+                <div class="canvas-viewport" id="spectral-canvas-viewport">
+                    <!-- Split-Slider View -->
+                    <div class="split-slider-container" id="spectral-slider-container">
+                        <div class="osd-wrapper osd-lr-wrapper" id="spectral-osd-lr-wrapper">
+                            <img id="spectral-img-lr" class="spectral-img-display" alt="Sentinel-2 10m Input" />
+                            <div id="spectral-osd-lr" class="osd-viewport"></div>
+                            <div class="img-tag tag-lr" id="spectral-tag-lr">Input: Sentinel-2 (10m)</div>
+                        </div>
+                        <div class="osd-wrapper osd-sr-wrapper" id="spectral-sr-wrapper">
+                            <img id="spectral-img-sr" class="spectral-img-display" alt="Super-Resolution 2.5m Output" />
+                            <div id="spectral-osd-sr" class="osd-viewport"></div>
+                            <div class="img-tag tag-sr" id="spectral-tag-sr">Output: HAT 2.5m (NDVI)</div>
+                        </div>
+                        <div class="slider-handle" id="spectral-slider-handle">
+                            <div class="handle-line"></div>
+                            <div class="handle-grip">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="15 18 9 12 15 6" />
+                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single Deep-Zoom View -->
+                    <div class="spectral-single-container" id="spectral-single-container" style="display: none;">
+                        <img id="spectral-img-single" class="spectral-img-display" alt="Super-Resolved 2.5m Spectral Analysis" />
+                        <div id="spectral-osd-single" class="osd-viewport" style="width: 100%; height: 100%;"></div>
+                        <div class="img-tag tag-sr" id="spectral-single-header">Output: HAT 2.5m (NDVI)</div>
+                    </div>
+
+                    <!-- Live Loading Indicator -->
+                    <div class="loading-scrim hidden" id="spectral-loading-scrim">
+                        <div class="spinner-core"></div>
+                        <div class="loading-text">Computing Multi-Band Spectral Index (spyndex)...</div>
+                        <div class="loading-sub">Preserving raw multispectral surface reflectance</div>
+                    </div>
+                </div>
+
+                <!-- Footer with Scientific Color Ramp & Interpretation -->
+                <div class="viewer-footer spectral-viewer-footer">
+                    <div class="spectral-legend" id="spectral-page-legend" style="flex: 1;">
+                        <div class="spectral-legend-header">
+                            <span class="spectral-legend-title" id="sp-legend-title">🌱 NDVI — Normalized Difference Vegetation Index</span>
+                            <span class="spectral-legend-stats" id="sp-legend-stats">Formula: (NIR - Red) / (NIR + Red)</span>
+                        </div>
+                        <div class="spectral-legend-bar-container" id="sp-legend-bar-container">
+                            <div class="spectral-legend-bar" id="sp-legend-bar"></div>
+                            <div class="spectral-legend-ticks" id="sp-legend-ticks">
+                                <span id="sp-tick-min">-0.2</span>
+                                <span id="sp-tick-mid">0.3</span>
+                                <span id="sp-tick-max">+0.85</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inspector-badge">
+                        <span id="spectral-inspector-resolution">Spatial Resolution: 2.5m GSD (Sub-4m)</span>
+                        <span id="spectral-inspector-engine">Engine: HAT Multi-Spectral (spyndex)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Domain Analytics HUD -->
+            <aside class="hud-panel" aria-label="Spectral and Disaster Analytics HUD">
+                <!-- Big Primary Stat Card: Km² Affected / Covered -->
+                <div class="panel-card usp-card spectral-stat-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title" id="stat-category-title">Crop Canopy Coverage</h3>
+                        <span class="card-badge card-badge-emerald" id="stat-threshold-badge">NDVI ≥ 0.40</span>
+                    </div>
+                    <p class="panel-desc" id="stat-category-desc">Real-world land area calculated from 2.5m pixel density expansion.</p>
+                    
+                    <div class="spectral-big-stat-box">
+                        <div class="spectral-stat-number" id="stat-area-km2">-- km²</div>
+                        <div class="spectral-stat-pct-badge" id="stat-area-pct">--% of AOI</div>
+                    </div>
+
+                    <div class="spectral-stat-sub">
+                        <span>Total AOI Surveyed: <strong id="stat-total-aoi">-- km²</strong></span>
+                        <span>Pixel GSD: <strong>2.5m (6.25 m²/px)</strong></span>
+                    </div>
+                </div>
+
+                <!-- Index Statistical Distribution Card -->
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">Index Distribution</h3>
+                        <span class="card-badge card-badge-cyan">NUMERICAL METRICS</span>
+                    </div>
+                    <p class="panel-desc">Radiometric values computed across the active 2.5m raster array.</p>
+
+                    <div class="metric-grid">
+                        <div class="metric-tile highlight">
+                            <div class="metric-val" id="metric-sp-mean">--</div>
+                            <div class="metric-lbl">Mean Index Value</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-val metric-val-emerald" id="metric-sp-max">--</div>
+                            <div class="metric-lbl">Peak (Max Value)</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-val metric-val-yellow" id="metric-sp-min">--</div>
+                            <div class="metric-lbl">Minimum Value</div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-val" id="metric-sp-std">--</div>
+                            <div class="metric-lbl">Std Deviation (σ)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scientific Decision Support & Disaster Context Card -->
+                <div class="panel-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">Scientific Interpretation</h3>
+                        <span class="card-badge card-badge-purple">DECISION SUPPORT</span>
+                    </div>
+                    <div class="callout-box" id="spectral-decision-box" style="margin-top: 0.5rem; font-size: 0.8rem; line-height: 1.45;">
+                        <strong>Agricultural Monitoring:</strong> NDVI ≥ 0.4 indicates dense vegetative canopy with active chlorophyll absorption. Sub-4m resolution resolves individual agricultural parcel medhs.
+                    </div>
+
+                    <div class="callout-box-slate" style="margin-top: 0.75rem; font-size: 0.75rem;">
+                        <strong>Proven Scientific Standards:</strong> Computed via <code>awesome-spectral-indices</code> (spyndex) using official European Space Agency Sentinel-2 band equations.
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div><!-- /view-spectral-analysis -->
+
+    </div><!-- /dash-page-viewer -->
+
+    <!-- ======== DASH PAGE 2: CONFIGURATION ======== -->
+
+    <div class="dash-page" id="dash-page-config">
+      <div class="config-page">
+        <div class="page-head">
+          <h2>Configuration</h2>
+          <p>Set up the inference engine before running super-resolution. For live analysis, adjust settings in the Viewer sidebar.</p>
+        </div>
+
+        <div class="config-form-group">
+          <label>Architecture</label>
+          <select class="config-select" onchange="document.getElementById('select-model').value=this.value;document.getElementById('select-model').dispatchEvent(new Event('change'));">
+            <option value="hat">HAT — Hybrid Attention Transformer (Sharpest Edges)</option>
+            <option value="ldsr_s2">LDSR-S2 — Diffusion Model (High Detail)</option>
+            <option value="srmnet">SRM-Net — Residual Attention + MC-Dropout</option>
+            <option value="carn">CARN — Cascading Residual Network (Conservative)</option>
+            <option value="swinir">SwinIR — Swin Transformer</option>
+          </select>
+        </div>
+
+        <div class="config-form-group">
+          <label>Target Resolution / Scale</label>
+          <select class="config-select" onchange="document.getElementById('select-scale').value=this.value;document.getElementById('select-scale').dispatchEvent(new Event('change'));">
+            <option value="4">4× Upscaling (10.0m → 2.5m GSD — Sub-4m Target)</option>
+            <option value="2">2× Upscaling (10.0m → 5.0m GSD)</option>
+          </select>
+        </div>
+
+        <div class="config-form-group">
+          <label>Acquisition Mode</label>
+          <div class="config-toggle-group">
+            <span class="active" onclick="document.getElementById('btn-mode-single').click();this.parentElement.querySelectorAll('span').forEach(s=>s.classList.remove('active'));this.classList.add('active');">Single Pass</span>
+            <span onclick="document.getElementById('btn-mode-multi').click();this.parentElement.querySelectorAll('span').forEach(s=>s.classList.remove('active'));this.classList.add('active');">Multi-Temporal (3-Pass Fusion)</span>
+          </div>
+        </div>
+
+        <div class="config-form-group">
+          <div class="slider-row">
+            <label>MC-Dropout Passes (Uncertainty)</label>
+            <span class="val" id="config-val-mc">8 passes</span>
+          </div>
+          <input type="range" class="config-range" min="4" max="16" step="2" value="8"
+            oninput="document.getElementById('slider-mc-samples').value=this.value;document.getElementById('val-mc-samples').textContent=this.value+' passes';document.getElementById('config-val-mc').textContent=this.value+' passes';">
+        </div>
+
+        <div class="config-divider-box">
+          <div>
+            <span class="config-divider-title" style="color:#b19eff;">Stage 2: Real-ESRGAN Sharpening (outscale=1)</span>
+            <span class="config-divider-sub">RealESRGAN_x4plus (RRDBNet) preview pass · Metrics stay on pure HAT</span>
+          </div>
+          <input type="checkbox" class="checkbox-cyan" onchange="document.getElementById('check-realesrgan-sharpen').checked=this.checked;document.getElementById('check-realesrgan-sharpen').dispatchEvent(new Event('change'));">
+        </div>
+
+        <a class="link-action" onclick="document.getElementById('btn-trigger-upload').click();">↑ Upload custom GeoTIFF / tile</a>
+      </div>
+    </div><!-- /dash-page-config -->
+
+    <!-- ======== DASH PAGE 3: ANALYTICS & PROVENANCE ======== -->
+    <div class="dash-page" id="dash-page-analytics">
+      <div class="analytics-page">
+
+        <!-- Hallucination & Uncertainty -->
+        <div class="analytics-section">
+          <div class="sec-title">
+            <h3>Hallucination &amp; uncertainty</h3>
+            <span>Scientific trust verification · ESA opensr-test + MC-Dropout</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="v good" id="a-metric-confidence">--%</div><div class="l">Avg. confidence score</div></div>
+            <div class="stat"><div class="v" id="a-metric-uncertainty">--</div><div class="l">MC-Dropout variance</div></div>
+            <div class="stat"><div class="v" id="a-metric-sam">--°</div><div class="l">Spectral angle (SAM)</div></div>
+            <div class="stat"><div class="v" id="a-metric-cycle">--</div><div class="l">Cycle-consistency MAE</div></div>
+          </div>
+          <p class="sec-note">Verified via ESA opensr-test and Monte-Carlo dropout variance so judges can check whether fine boundaries are physically observed by Sentinel-2 or synthesised by the model.</p>
+        </div>
+
+        <!-- Validation vs HR Reference -->
+        <div class="analytics-section">
+          <div class="sec-title">
+            <h3>Validation vs. HR reference</h3>
+            <span>Paired ground truth · SPOT 6/7 1.5m</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="v" id="a-metric-psnr">-- dB</div><div class="l">PSNR vs HR reference</div></div>
+            <div class="stat"><div class="v" id="a-metric-ssim">--</div><div class="l">SSIM structure index</div></div>
+            <div class="stat"><div class="v" id="a-metric-ergas">--</div><div class="l">ERGAS synthesis error</div></div>
+            <div class="stat"><div class="v" id="a-metric-runtime">-- ms</div><div class="l">Inference latency (CPU)</div></div>
+          </div>
+          <div class="kv-strip">
+            <div>AROSICS shift (x, y)<b id="a-coreg-shift">--</b></div>
+            <div>Reference source<b>WorldStrat · SPOT 1.5m</b></div>
+            <div>Last validated<b id="a-last-validated">--</b></div>
+          </div>
+        </div>
+
+        <!-- Detected Infrastructure -->
+        <div class="analytics-section">
+          <div class="sec-title">
+            <h3>Detected infrastructure</h3>
+            <span>Multi-class extraction</span>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><div class="v" id="a-metric-buildings">--</div><div class="l">Building footprints</div></div>
+            <div class="stat"><div class="v" id="a-metric-roads">-- km</div><div class="l">Road corridors</div></div>
+            <div class="stat"><div class="v good" id="a-metric-infra-conf">--%</div><div class="l">Detection confidence</div></div>
+          </div>
+          <p class="sec-note">Full vector topology exported as GeoJSON with per-feature confidence metrics for downstream GIS analysis.</p>
+        </div>
+
+        <!-- Pipeline Verification -->
+        <div class="analytics-section">
+          <div class="sec-title">
+            <h3>Pipeline verification</h3>
+            <span>Live provenance</span>
+          </div>
+          <div class="pipeline-grid">
+            <div class="pcell"><div class="l">Active checkpoint</div><div class="v" id="a-verif-checkpoint">--</div></div>
+            <div class="pcell"><div class="l">Dropout mode</div><div class="v" id="a-verif-dropout">--</div></div>
+            <div class="pcell"><div class="l">Array dimensions</div><div class="v" id="a-verif-dimensions">--</div></div>
+            <div class="pcell"><div class="l">Stage 2 sharpening</div><div class="v" id="a-verif-unsharp">--</div></div>
+            <div class="pcell"><div class="l">Ground truth reference</div><div class="v" id="a-verif-reference">--</div></div>
+            <div class="pcell"><div class="l">Temporal fusion</div><div class="v" id="a-verif-temporal">--</div></div>
+            <div class="pcell"><div class="l">Blockchain provenance</div><div class="v" id="a-verif-blockchain">--</div></div>
+            <div class="pcell"><div class="l">Per-pixel variance</div><div class="v" id="a-verif-variance">--</div></div>
+          </div>
+          <div class="chain-row">
+            <p>On-chain provenance: <b>sub-11cm geo-tagging</b> · SHA-256 anchored to Polygon Amoy testnet, chain ID 80002</p>
+            <button type="button" class="btn btn-sm btn-outline" id="btn-analytics-open-blockchain" onclick="document.getElementById('btn-footer-open-blockchain').click();">View on explorer</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /dash-page-analytics -->
+
+    <!-- analytics sync script: mirrors HUD values into the analytics tab -->
+    <script>
+    (function() {
+      // Tab switching
+      var dashTabs = document.getElementById('dash-tabs');
+      if (dashTabs) {
+        dashTabs.querySelectorAll('button').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            dashTabs.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.dash-page').forEach(function(p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            var target = document.getElementById('dash-page-' + btn.dataset.dashPage);
+            if (target) {
+              target.classList.add('active');
+              // sync analytics values when switching to analytics tab
+              if (btn.dataset.dashPage === 'analytics') syncAnalytics();
+            }
+          });
+        });
+      }
+
+      // Mirror HUD metric IDs -> analytics tab IDs
+      function mirror(fromId, toId) {
+        var src = document.getElementById(fromId);
+        var dst = document.getElementById(toId);
+        if (src && dst) dst.textContent = src.textContent;
+      }
+
+      function syncAnalytics() {
+        mirror('metric-confidence',  'a-metric-confidence');
+        mirror('metric-uncertainty', 'a-metric-uncertainty');
+        mirror('metric-sam',         'a-metric-sam');
+        mirror('metric-cycle',       'a-metric-cycle');
+        mirror('metric-psnr',        'a-metric-psnr');
+        mirror('metric-ssim',        'a-metric-ssim');
+        mirror('metric-ergas',       'a-metric-ergas');
+        mirror('metric-runtime',     'a-metric-runtime');
+        mirror('metric-buildings',   'a-metric-buildings');
+        mirror('metric-roads',       'a-metric-roads');
+        mirror('metric-infra-conf',  'a-metric-infra-conf');
+        mirror('verif-checkpoint',   'a-verif-checkpoint');
+        mirror('verif-dropout',      'a-verif-dropout');
+        mirror('verif-dimensions',   'a-verif-dimensions');
+        mirror('verif-unsharp',      'a-verif-unsharp');
+        mirror('verif-reference',    'a-verif-reference');
+        mirror('verif-temporal',     'a-verif-temporal');
+        mirror('verif-blockchain-status', 'a-verif-blockchain');
+        mirror('verif-variance',     'a-verif-variance');
+        // AROSICS
+        var cs = document.getElementById('coreg-shift-status');
+        var ad = document.getElementById('a-coreg-shift');
+        if (cs && ad) ad.textContent = cs.textContent;
+        // date
+        var mc = document.getElementById('metric-computed-at');
+        var ald = document.getElementById('a-last-validated');
+        if (mc && ald) ald.textContent = mc.textContent;
+      }
+
+      // Also sync whenever app.js updates a metric (MutationObserver)
+      var metricIds = ['metric-confidence','metric-uncertainty','metric-sam','metric-cycle',
+                       'metric-psnr','metric-ssim','metric-ergas','metric-runtime',
+                       'metric-buildings','metric-roads','metric-infra-conf'];
+      metricIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        new MutationObserver(function() {
+          if (document.getElementById('dash-page-analytics') &&
+              document.getElementById('dash-page-analytics').classList.contains('active')) {
+            syncAnalytics();
+          }
+        }).observe(el, { childList: true, subtree: true, characterData: true });
+      });
+    })();
+    </script>
+
+    <!-- Site Footer: Live Pipeline Verification & Provenance HUD -->
+    <footer class="site-footer" id="site-footer" aria-label="Pipeline Verification and Provenance Telemetry">
+        <div class="footer-card">
+            <div class="footer-header">
+                <div class="footer-title-group">
+                    <h3 class="footer-title">Pipeline Verification</h3>
+                    <span class="footer-subtitle">Live inference telemetry, Monte-Carlo uncertainty, and paired satellite provenance</span>
+                </div>
+                <span class="card-badge card-badge-cyan">LIVE PROVENANCE</span>
+            </div>
+            <div class="verif-grid">
+                <div class="verif-tile">
+                    <div class="verif-item-title">Active Checkpoint</div>
+                    <div id="verif-checkpoint" class="verif-code-white">srmnet_x4_sentinel2.pt (4x / 2.5m GSD)</div>
+                </div>
+                <div class="verif-tile">
+                    <div class="verif-item-title">Dropout Mode (Inference)</div>
+                    <div id="verif-dropout" class="verif-code-cyan">force_dropout=True (BN frozen, 8 passes)</div>
+                </div>
+                <div class="verif-tile">
+                    <div class="verif-item-title">Raw Per-Pixel Variance (Unrounded)</div>
+                    <div id="verif-variance" class="verif-code-green">min: 7.64e-09 | max: 3.54e-06 | mean: 6.98e-07</div>
+                </div>
+                <div class="verif-tile">
+                    <div class="verif-item-title">Array Dimensions (Genuine 4x Expansion)</div>
+                    <div id="verif-dimensions" class="verif-code-yellow">LR: 128×128 px → SR: 512×512 px (16x pixel density)</div>
+                </div>
+                <div class="verif-tile">
+                    <div class="verif-item-title">Stage 2 Preview Sharpening</div>
+                    <div id="verif-unsharp" class="verif-code-blue">Real-ESRGAN x4plus (outscale=1, tile=256)</div>
+                </div>
+                <div class="verif-tile">
+                    <div class="verif-item-title">Ground Truth HR Reference</div>
+                    <div id="verif-reference" class="verif-code-slate">data/reference_hr/punjab_agri_spot_1.5m.npy (SPOT 1.5m)</div>
+                </div>
+
+                <div class="verif-tile">
+                    <div class="verif-item-title">Temporal Fusion Mode</div>
+                    <div id="verif-temporal" class="verif-code-cyan">Single-Pass (Default)</div>
+                </div>
+                <div class="verif-tile verif-tile-purple">
+                    <div class="verif-item-title">Polygon Amoy Blockchain Provenance</div>
+                    <div id="verif-blockchain-status" class="verif-code-purple">v1 (Verified) • SHA-256 Anchored</div>
+                </div>
+            </div>
+
+            <!-- Footer Blockchain Action Bar -->
+            <div class="footer-blockchain-strip">
+                <div class="bc-footer-left">
+                    <span class="chain-dot-purple"></span>
+                    <span class="bc-footer-text"><strong>On-Chain Provenance Chain:</strong> Sub-11cm Geo-tagging (lat/lon &amp; bbox scaled 1e6) + SHA-256 linked to Polygon Amoy Testnet (Chain ID 80002)</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-blockchain" id="btn-footer-open-blockchain">
+                    Inspect Version History Chain (v1 ➔ v2 ➔ v3)
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Blockchain Provenance & Version Chain Modal -->
+    <div class="modal-overlay hidden" id="modal-blockchain" role="dialog" aria-modal="true" aria-labelledby="modal-blockchain-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-chain-tag">
+                        <span class="chain-dot-purple"></span>
+                        Polygon Amoy Testnet (Chain ID: 80002)
+                    </div>
+                    <h2 class="modal-title" id="modal-blockchain-title">NETRA Blockchain Provenance</h2>
+                    <p class="modal-subtitle">Immutable on-chain Geo-Tagging &amp; Version History Chain per tile</p>
+                </div>
+                <button type="button" class="btn-modal-close" id="btn-close-blockchain-modal" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Active Tile Telemetry Bar -->
+            <div class="blockchain-telemetry-bar">
+                <div class="bc-tele-item">
+                    <span class="bc-tele-label">Active Tile</span>
+                    <span class="bc-tele-val" id="bc-tile-id">punjab_agri</span>
+                </div>
+                <div class="bc-tele-item">
+                    <span class="bc-tele-label">On-Chain Version</span>
+                    <span class="bc-tele-val cyan" id="bc-version-tag">v1 (Verified)</span>
+                </div>
+                <div class="bc-tele-item">
+                    <span class="bc-tele-label">Centre Coordinates (Scaled 1e6)</span>
+                    <span class="bc-tele-val" id="bc-coords">31.1471°N, 75.3412°E</span>
+                </div>
+                <div class="bc-tele-item">
+                    <span class="bc-tele-label">SHA-256 Output Hash</span>
+                    <code class="bc-tele-code" id="bc-hash" title="Full SHA-256 Hash">0x...</code>
+                </div>
+                <div class="bc-tele-item">
+                    <span class="bc-tele-label">Polygonscan</span>
+                    <a href="https://amoy.polygonscan.com" target="_blank" rel="noopener noreferrer" class="bc-explorer-link" id="bc-tx-link">View Tx ↗</a>
+                </div>
+            </div>
+
+            <!-- Tabs: Version History Chain & On-Chain File Verifier -->
+            <div class="bc-tab-bar">
+                <button type="button" class="bc-tab-btn active" id="tab-bc-history">Version History Chain</button>
+                <button type="button" class="bc-tab-btn" id="tab-bc-verify">Verify File On-Chain</button>
+            </div>
+
+            <!-- Tab Content 1: Version History Chain Timeline -->
+            <div class="bc-tab-pane" id="pane-bc-history">
+                <div class="bc-timeline" id="bc-timeline-list">
+                    <!-- Populated dynamically by app.js -->
+                </div>
+            </div>
+
+            <!-- Tab Content 2: Verification Tool -->
+            <div class="bc-tab-pane hidden" id="pane-bc-verify">
+                <div class="bc-verify-box">
+                    <p class="bc-verify-desc">
+                        Select any local or exported GeoTIFF / PNG to verify its cryptographic hash against the latest Polygon Amoy on-chain record for this tile.
+                    </p>
+                    <div class="bc-upload-dropzone" id="bc-verify-dropzone">
+                        <input type="file" id="input-verify-file" class="bc-file-input" accept=".tif,.tiff,.png,.jpg">
+                        <div class="dropzone-text">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span>Choose or drag satellite file here to verify on-chain</span>
+                        </div>
+                    </div>
+                    <div id="bc-verify-result" class="bc-verify-result hidden"></div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <div class="modal-contract-info">
+                    <span>Contract: <code id="bc-contract-address">TileProvenance.sol (Polygon Amoy)</code></span>
+                </div>
+                <button type="button" class="btn btn-secondary" id="btn-done-blockchain">Done</button>
+            </div>
+        </div>
+    </div><!-- /modal-blockchain -->
+
+    <!-- Leaflet & Leaflet.draw JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- OpenSeadragon Deep-Zoom High-Resolution Viewer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.1/openseadragon.min.js"></script>
+    <script src="/static/app.js?v=20260913_clean_v8"></script>
+    </div>
+</body>
+
+</html>
