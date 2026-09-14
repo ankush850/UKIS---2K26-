@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-The **Cascading Residual Network (CARN)** serves as the authoritative international comparative baseline within the SIH26142 platform. Originating from the European Space Agency (ESA) **EvoLand** and **WorldStrat** research initiatives, CARN is the established standard for evaluating super-resolution on Sentinel-2 optical imagery.
+The **Cascading Residual Network (CARN)** serves as the authoritative international comparative baseline within the UKIS-2026 platform. Originating from the European Space Agency (ESA) **EvoLand** and **WorldStrat** research initiatives, CARN is the established standard for evaluating super-resolution on Sentinel-2 optical imagery.
 
 Incorporating CARN directly into the platform provides researchers, geospatial evaluators, and hackathon judges with:
 1. **Direct Academic Comparability:** Benchmarks against an internationally recognized, peer-reviewed model trained on the WorldStrat dataset.

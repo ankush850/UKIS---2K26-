@@ -1,5 +1,5 @@
 """
-Unit and Integration Tests for SIH26142 Super-Resolution Mapping Pipeline.
+Unit and Integration Tests for UKIS-2026 Super-Resolution Mapping Pipeline.
 """
 import sys
 from pathlib import Path

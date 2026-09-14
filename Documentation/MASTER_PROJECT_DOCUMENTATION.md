@@ -1,10 +1,10 @@
-# SIH26142: Master Technical Project Documentation
+# UKIS-2026: Master Technical Project Documentation
 ## Deep Learning Based Super-Resolution Mapping (SRM) for Sentinel-2 Imagery (10m → 2.5m GSD) with Hallucination-Aware Uncertainty & Cryptographic Provenance
 
-**Project Identifier:** SIH26142  
+**Project Identifier:** UKIS-2026  
 **Target Beneficiaries:** Ministry of Development of North Eastern Region (DoNER) / North Eastern Space Applications Centre (NESAC) / Indian Space Research Organisation (ISRO)  
 **Theme:** Space Technology, Deep Learning, Hallucination-Aware Scientific Trust & Immutable Satellite Provenance  
-**Repository:** `SIH-2K26`
+**Repository:** `UKIS-2026`
 
 ---
 
@@ -38,7 +38,7 @@ In the rugged, cloud-prone geography of the **North Eastern Region of India (NER
 - **Commercial Satellite Prohibitive Cost:** High-resolution commercial tasking (WorldView, Pleiades, SPOT 6/7) costs thousands of dollars per scene and lacks systematic 5-day temporal coverage.
 
 ### 1.2. The Project Objective
-**SIH26142 (GEO-SRM)** bridges this spatial divide by transforming standard 10m Sentinel-2 multi-spectral observations into **2.5m GSD imagery (a $4\times$ spatial upscaling, representing a $16\times$ pixel density increase)**, achieving the **sub-4m spatial accuracy** mandated by DoNER and NESAC.
+**UKIS-2026 (GEO-SRM)** bridges this spatial divide by transforming standard 10m Sentinel-2 multi-spectral observations into **2.5m GSD imagery (a $4\times$ spatial upscaling, representing a $16\times$ pixel density increase)**, achieving the **sub-4m spatial accuracy** mandated by DoNER and NESAC.
 
 Crucially, rather than treating super-resolution as an aesthetic photo-enhancement task, our system establishes an **Active Scientific Trust Layer** that detects, quantifies, and visually flags **AI hallucinations** in real time, guaranteeing scientific fidelity and data provenance.
 
@@ -416,8 +416,8 @@ The frontend is a zero-build, dependency-free vanilla HTML5/JavaScript applicati
 ### 11.2. Installation Steps
 ```bash
 # 1. Clone repository
-git clone https://github.com/ankush850/SIH-2K26.git
-cd SIH-2K26
+git clone https://github.com/ankush850/UKIS-2026.git
+cd UKIS-2026
 
 # 2. Create virtual environment
 python -m venv venv
@@ -464,7 +464,7 @@ pytest tests/
 ## 12. Project Directory & File Structure
 
 ```
-SIH-2K26/
+UKIS-2026/
 ├── Documentation/                              # Master technical documentation
 │   ├── MASTER_PROJECT_DOCUMENTATION.md        # <-- You are here (Comprehensive Manual)
 │   ├── MODEL_BENCHMARK_AND_SELECTION_GUIDE.md # Exhaustive mathematical benchmark guide
@@ -536,4 +536,4 @@ SIH-2K26/
 
 ---
 
-*Authored for the Smart India Hackathon (SIH26142) — Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO.*

@@ -15,7 +15,7 @@ from backend.models.sr_engine import SREngine
 
 def main():
     print("=" * 70)
-    print("SIH26142 CLOUD MASKING & INFRASTRUCTURE SUPPRESSION VERIFICATION")
+    print("UKIS-2026 CLOUD MASKING & INFRASTRUCTURE SUPPRESSION VERIFICATION")
     print("=" * 70)
 
     # 1. Load real cloudy cache tile (43.7% cloud cover)

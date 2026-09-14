@@ -15,7 +15,7 @@ Satellite Remote Sensing me Real-ESRGAN ka ek bohot khaas aur dual-purpose role 
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-Real-ESRGAN ko SIH26142 platform me **Perceptual Texture Ceiling & Hallucination Benchmark** banaya gaya hai. Real-life use cases:
+Real-ESRGAN ko UKIS-2026 platform me **Perceptual Texture Ceiling & Hallucination Benchmark** banaya gaya hai. Real-life use cases:
 
 ### 1. Empirical Proof of AI Hallucinations in Earth Observation (Audit Baseline)
 - **Problem:** Hackathons aur scientific panels me aksar log puchte hain: *"Aap standard open-source Real-ESRGAN kyu nahi use kar lete? Woh to bohot sharp dikhta hai!"*

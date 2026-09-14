@@ -1,4 +1,4 @@
-# Implementation Plan: SIH26142 Super Resolution Mapping (SRM) System
+# Implementation Plan: UKIS-2026 Super Resolution Mapping (SRM) System
 
 ## 1. Project Goal & Scope
 **Objective:** Develop a robust, end-to-end Earth Observation web platform that upscales Copernicus Sentinel-2 L2A satellite imagery from a 10m Ground Sample Distance (GSD) to a <4m GSD (targeting 2.5m, a 4x spatial upscaling). 
@@ -59,4 +59,4 @@
 
 ## 5. Deployment Plan
 *   **Local Demo:** Ensure seamless launch via `uvicorn backend.app:app --reload` with zero hardcoded credentials (using `.env`).
-*   **Cloud/GPU Demo (Colab):** Provide a Jupyter Notebook (`SIH26142_Colab_Pipeline.ipynb`) that clones the repo, installs dependencies, and runs the FastAPI server via an `ngrok` tunnel on a free Google Colab T4 GPU instance, allowing judges to test it remotely.
+*   **Cloud/GPU Demo (Colab):** Provide a Jupyter Notebook (`UKIS-2026_Colab_Pipeline.ipynb`) that clones the repo, installs dependencies, and runs the FastAPI server via an `ngrok` tunnel on a free Google Colab T4 GPU instance, allowing judges to test it remotely.

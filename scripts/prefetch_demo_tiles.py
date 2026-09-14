@@ -13,7 +13,7 @@ from backend.ingestion.copernicus_client import CopernicusClient, DEMO_AOIS
 
 def main():
     print("=" * 60)
-    print("[SIH26142] Pre-fetching Hackathon Demo AOIs into Cache")
+    print("[UKIS-2026] Pre-fetching Hackathon Demo AOIs into Cache")
     print("=" * 60)
 
     client = CopernicusClient()

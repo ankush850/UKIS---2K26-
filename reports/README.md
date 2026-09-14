@@ -1,4 +1,4 @@
-# SIH26142 — Master Model Benchmark & Architecture Reports Index
+# UKIS-2026 — Master Model Benchmark & Architecture Reports Index
 ### Super-Resolution Mapping (SRM) from Sentinel-2 (10m) to Sub-4m (2.5m GSD) with Hallucination-Aware Uncertainty
 **Target:** Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO  
 **Theme:** Space Technology, Deep Learning, Hallucination-Aware Scientific Trust & Satellite Provenance
@@ -14,7 +14,7 @@ In spaceborne optical Earth Observation (EO), European Space Agency (ESA) **Cope
 
 Our system super-resolves 10m Sentinel-2 multi-spectral tiles to **2.5m GSD (4× spatial upscaling, 16× pixel density expansion)**, while incorporating an **Active Scientific Trust Layer** that detects and quantifies AI hallucinations in real time.
 
-This `reports/` directory contains dedicated, exhaustive technical evaluation dossiers for each neural architecture evaluated, integrated, and benchmarked within the SIH26142 platform.
+This `reports/` directory contains dedicated, exhaustive technical evaluation dossiers for each neural architecture evaluated, integrated, and benchmarked within the UKIS-2026 platform.
 
 > 📐 **Master Formulas & Mathematical Derivations Guide:** For complete LaTeX formulations, derivations, loss functions, and PyTorch code across all architectures, see [`Documentation/FORMULAS_AND_MATHEMATICAL_DERIVATIONS.md`](../Documentation/FORMULAS_AND_MATHEMATICAL_DERIVATIONS.md).
 

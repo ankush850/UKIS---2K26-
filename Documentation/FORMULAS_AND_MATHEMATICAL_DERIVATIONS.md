@@ -1,4 +1,4 @@
-# SIH26142 — Complete Formulas & Mathematical Derivations Guide
+# UKIS-2026 — Complete Formulas & Mathematical Derivations Guide
 ### Exhaustive Mathematical Formulations, Loss Functions, Metrics, and Physics Equations
 **Project:** Super-Resolution Mapping (SRM) from Sentinel-2 (10m) to Sub-4m (2.5m GSD) with Hallucination-Aware Uncertainty  
 **Target:** Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO  
@@ -480,4 +480,4 @@ $$\text{Record} = \{\text{tileId}, \, \text{lat}_{\text{scaled}}, \, \text{lon}_
 
 ---
 
-*Authored for the Smart India Hackathon (SIH26142) — Super-Resolution Mapping for Sentinel-2 Imagery.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Super-Resolution Mapping for Sentinel-2 Imagery.*

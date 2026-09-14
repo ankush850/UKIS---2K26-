@@ -125,7 +125,7 @@ High-Resolution Dataset (DIV2K, Flickr2K, Outdoor Scenes)
   │
   └─► Export Generator Weights: weights/RealESRGAN_x4plus.pth (16.7M params, 67 MB)
 
-[Prediction & Scientific Audit Pipeline in SIH26142]
+[Prediction & Scientific Audit Pipeline in UKIS-2026]
 User selects AOI tile
   │
   ├─► Step 1: Preprocess raw Sentinel-2 radiance

@@ -14,7 +14,7 @@
 
 Unlike classical super-resolution models that operate directly in pixel space, LDSR-S2 projects 4-band Sentinel-2 imagery (B02, B03, B04, B08) into a compressed latent space via a pretrained spatial autoencoder, then iteratively removes Gaussian noise over calibrated **DDIM (Denoising Diffusion Implicit Models)** reverse-sampling steps to synthesize 2.5m GSD imagery.
 
-Integrating LDSR-S2 into the SIH26142 platform enables evaluators to directly compare single-pass regression transformers (HAT), lightweight Bayesian CNNs (SRM-Net), adversarial generators (Real-ESRGAN), and multi-step iterative generative diffusion models.
+Integrating LDSR-S2 into the UKIS-2026 platform enables evaluators to directly compare single-pass regression transformers (HAT), lightweight Bayesian CNNs (SRM-Net), adversarial generators (Real-ESRGAN), and multi-step iterative generative diffusion models.
 
 ---
 

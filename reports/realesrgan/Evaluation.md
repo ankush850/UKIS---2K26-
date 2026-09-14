@@ -20,7 +20,7 @@ Real-ESRGAN ko evaluate karte waqt remote sensing me ek anokha virodhabhas (para
 - **Real-ESRGAN Score:** **0.0382** (High residual drift, fails physical conservation of radiance).
 
 ### 4. Scientific Trust & Confidence Score — *Higher is Better ($\uparrow$)*
-- **Real-ESRGAN Score:** **64.2% – 68.9%** (Penalized by the SIH26142 Trust Layer due to hallucination markers).
+- **Real-ESRGAN Score:** **64.2% – 68.9%** (Penalized by the UKIS-2026 Trust Layer due to hallucination markers).
 
 ### 5. CPU Computational Latency — *Lower is Better ($\downarrow$)*
 - **Measurement:** Single $128 \times 128 \to 512 \times 512$ tile.
@@ -66,7 +66,7 @@ Standardized benchmark across Sentinel-2 L2A test scenes against paired SPOT-6/7
 
 ### 1. Real-ESRGAN Kab Use Karein? (Best For:)
 - **Marketing, Presentations & Brochures:** Jab public awareness ke liye photo-realistic sharp pictures dikhani hon aur exact cadastral survey critical na ho.
-- **Scientific Hallucination Benchmark:** Hackathon judges ko yeh prove karne ke liye ki unconstrained AI models satellite data me kyu fail hote hain aur SIH26142 ka Scientific Trust Layer kyu zaroori hai.
+- **Scientific Hallucination Benchmark:** Hackathon judges ko yeh prove karne ke liye ki unconstrained AI models satellite data me kyu fail hote hain aur UKIS-2026 ka Scientific Trust Layer kyu zaroori hai.
 
 ### 2. Real-ESRGAN Kab KABHI BHI Use Na Karein? (Strictly Prohibited For:)
 - **Cadastral Boundary Dispute Resolution:** Khet ki medh tay karne ke liye iska use na karein, yeh jhooti boundary invent kar sakta hai.

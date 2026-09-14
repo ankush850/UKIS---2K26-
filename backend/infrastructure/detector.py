@@ -275,7 +275,7 @@ class InfrastructureDetector:
         geojson_data = {
             "type": "FeatureCollection",
             "metadata": {
-                "system": "SIH26142 Multi-Class Infrastructure Detection Engine (SamGeo)",
+                "system": "UKIS-2026 Multi-Class Infrastructure Detection Engine (SamGeo)",
                 "text_prompt": self.text_prompt,
                 "box_threshold": self.box_threshold,
                 "text_threshold": self.text_threshold,

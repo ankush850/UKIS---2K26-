@@ -1,4 +1,4 @@
-# SIH26142 Dependencies
+# UKIS-2026 Dependencies
 fastapi>=0.100.0
 uvicorn>=0.23.0
 pydantic>=2.0.0

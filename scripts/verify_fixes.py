@@ -27,7 +27,7 @@ client = TestClient(app)
 
 def main():
     print("=" * 80)
-    print("SIH26142 FIX VERIFICATION: CO-REGISTRATION & BRIDGE OVER-DETECTION")
+    print("UKIS-2026 FIX VERIFICATION: CO-REGISTRATION & BRIDGE OVER-DETECTION")
     print("=" * 80)
 
     # -------------------------------------------------------------

@@ -65,7 +65,7 @@ for cp in checkpoints_to_build:
         "metadata": {
             "trained_epochs": 150,
             "best_psnr": 34.2,
-            "author": "SIH26142 Team",
+            "author": "UKIS-2026 Team",
             "license": "Apache 2.0"
         }
     }

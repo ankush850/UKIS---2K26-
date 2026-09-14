@@ -1,5 +1,5 @@
 """
-Configuration settings for SIH26142 Super Resolution Mapping (SRM) System.
+Configuration settings for UKIS-2026 Super Resolution Mapping (SRM) System.
 """
 from pathlib import Path
 import os

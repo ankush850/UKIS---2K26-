@@ -9,7 +9,7 @@ new_html = f'''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIH26142 - Super Resolution Mapping (SRM) | Sentinel-2 (10m -> 2.5m)</title>
+    <title>UKIS-2026 - Super Resolution Mapping (SRM) | Sentinel-2 (10m -> 2.5m)</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

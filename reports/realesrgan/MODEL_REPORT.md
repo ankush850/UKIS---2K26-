@@ -11,7 +11,7 @@
 
 **Real-ESRGAN** (Wang et al., ICCV 2021) is one of the most celebrated perceptual super-resolution models in computer vision, designed to restore heavily compressed and degraded natural photographs by synthesizing crisp, high-frequency textural details.
 
-In the SIH26142 platform, Real-ESRGAN plays a vital, dual-purpose role:
+In the UKIS-2026 platform, Real-ESRGAN plays a vital, dual-purpose role:
 1. **The Perceptual Aesthetic Ceiling:** It defines the highest attainable limit for human visual sharpness and high-contrast edge presentation.
 2. **The Empirical Proof of the "Hallucination Problem":** It provides unambiguous, scientific proof of **why unconstrained commercial generative AI models cannot be blindly trusted in Earth Observation**. When applied to Sentinel-2 satellite data, Real-ESRGAN fabricates micro-structures that do not physically exist on the ground (inventing paved paths in open soil, phantom rooftop geometries in forest canopies, and fictitious parcel demarcations).
 

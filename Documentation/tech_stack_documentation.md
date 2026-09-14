@@ -1,4 +1,4 @@
-# Tech Stack Documentation: SIH26142 (GEO-SRM)
+# Tech Stack Documentation: UKIS-2026 (GEO-SRM)
 
 This document provides a detailed breakdown of the technologies, frameworks, and libraries utilized in the Super Resolution Mapping (SRM) platform. The tech stack is divided into Backend, AI/ML Engine, Geospatial Processing, and Frontend layers.
 

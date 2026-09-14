@@ -1,5 +1,5 @@
 """
-Comprehensive model benchmarking script for SIH26142 Super-Resolution Mapping.
+Comprehensive model benchmarking script for UKIS-2026 Super-Resolution Mapping.
 Evaluates HAT, SRM-Net, and CARN against paired Sentinel-2 <-> SPOT 6/7 1.5m ground truth.
 Calculates PSNR, SSIM, SAM, ERGAS, NIQE, BRISQUE, inference latency, parameter counts, and variance.
 """
@@ -17,7 +17,7 @@ from backend.usp.hallucination_detector import HallucinationDetector
 
 def benchmark():
     print("=" * 80)
-    print("SIH26142 MODEL BENCHMARKING SUITE (Sentinel-2 10m -> 2.5m)")
+    print("UKIS-2026 MODEL BENCHMARKING SUITE (Sentinel-2 10m -> 2.5m)")
     print("=" * 80)
 
     models_to_test = ["hat", "srmnet"]

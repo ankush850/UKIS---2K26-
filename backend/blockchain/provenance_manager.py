@@ -179,7 +179,7 @@ class ProvenanceManager:
         3. Retrieves prior record to set previousHash and versionNumber (v1, v2, v3).
         4. Broadcasts to Polygon Amoy contract if available, otherwise commits to ledger.
         """
-        clean_tile_id = str(tile_id).strip() or "sih_tile_001"
+        clean_tile_id = str(tile_id).strip() or "UKIS-2026_tile_001"
         image_hash = compute_sha256(image_data)
 
         # Parse Bounding Box: [min_lon, min_lat, max_lon, max_lat] or [west, south, east, north]

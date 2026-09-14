@@ -1,5 +1,5 @@
 /**
- * SIH26142 - Super Resolution Mapping Frontend Application
+ * UKIS-2026 - Super Resolution Mapping Frontend Application
  * Features:
  * 1. AOI Selection -> Real Sentinel-2 L2A tile fetching via Copernicus CDSE
  * 2. Deep Learning Super Resolution Inference (10m -> 2.5m GSD)
@@ -1574,7 +1574,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const bcHash = document.getElementById("bc-hash");
         const bcTxLink = document.getElementById("bc-tx-link");
 
-        if (bcTileId) bcTileId.innerText = record.tileId || state.activeAoiId || "sih_tile_001";
+        if (bcTileId) bcTileId.innerText = record.tileId || state.activeAoiId || "UKIS-2026_tile_001";
         if (bcVersionTag) bcVersionTag.innerText = `v${record.versionNumber} (Verified On-Chain)`;
         if (bcCoords && record.realCoordinates) {
             bcCoords.innerText = `${record.realCoordinates.latCenter.toFixed(4)}°N, ${record.realCoordinates.lonCenter.toFixed(4)}°E`;
@@ -2283,7 +2283,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (state.latestSpectralSrUrl) {
                 const a = document.createElement("a");
                 a.href = state.latestSpectralSrUrl;
-                a.download = `sih26142_spectral_${state.activeSpectralMode || 'ndvi'}_${state.activePreset || 'aoi'}.png`;
+                a.download = `UKIS-2026_spectral_${state.activeSpectralMode || 'ndvi'}_${state.activePreset || 'aoi'}.png`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);

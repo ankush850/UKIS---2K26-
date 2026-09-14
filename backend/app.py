@@ -1,5 +1,5 @@
 """
-Main FastAPI entrypoint for SIH26142 Super Resolution Mapping (SRM) System.
+Main FastAPI entrypoint for UKIS-2026 Super Resolution Mapping (SRM) System.
 """
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -13,7 +13,7 @@ from backend.api.routes import router as api_router
 from backend.config import BASE_DIR
 
 app = FastAPI(
-    title="SIH26142 - Super Resolution Mapping (SRM)",
+    title="UKIS-2026 - Super Resolution Mapping (SRM)",
     description="Sentinel-2 10m to <4m Super Resolution with Hallucination-Aware Uncertainty USP",
     version="1.0.0"
 )
@@ -47,13 +47,13 @@ async def serve_index():
                 "Expires": "0"
             }
         )
-    return {"message": "SIH26142 SRM Backend Active. Frontend index.html not found."}
+    return {"message": "UKIS-2026 SRM Backend Active. Frontend index.html not found."}
 
 @app.get("/health")
 async def health():
     return {
         "status": "healthy",
-        "service": "SIH26142 Super Resolution Mapping",
+        "service": "UKIS-2026 Super Resolution Mapping",
         "usp": "Hallucination-Aware Uncertainty Mapping (MC-Dropout + opensr-test)",
         "resolution": "10m -> 2.5m (4x upsampling)"
     }

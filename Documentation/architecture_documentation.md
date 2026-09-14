@@ -1,6 +1,6 @@
-# System Architecture: SIH26142 (GEO-SRM)
+# System Architecture: UKIS-2026 (GEO-SRM)
 
-This document outlines the high-level architecture, data flow, and modular components of the SIH26142 Super Resolution Mapping (SRM) system. 
+This document outlines the high-level architecture, data flow, and modular components of the UKIS-2026 Super Resolution Mapping (SRM) system. 
 
 ## 1. High-Level Data Flow Architecture
 

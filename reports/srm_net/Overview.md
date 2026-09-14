@@ -15,7 +15,7 @@ Heavy Transformer models (jaise HAT) visual quality me sharp hote hain par bohot
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-SRM-Net ko SIH26142 platform me **Real-Time Interactive Dashboard & Uncertainty Engine** banaya gaya hai. Real-life use cases:
+SRM-Net ko UKIS-2026 platform me **Real-Time Interactive Dashboard & Uncertainty Engine** banaya gaya hai. Real-life use cases:
 
 ### 1. Live Interactive Web Dashboard & Tile Exploration
 - **Problem:** GIS officers aur disaster management teams ko web browser me instant zoom-in/zoom-out aur split-slider dekhna hota hai. Agar model 15 second lagaye to user experience kharab ho jata hai.

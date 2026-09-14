@@ -1,4 +1,4 @@
-# SIH26142 — Model Benchmark & Architectural Selection Guide
+# UKIS-2026 — Model Benchmark & Architectural Selection Guide
 **Super-Resolution Mapping (SRM) from Sentinel-2 (10m) to Sub-4m (2.5m GSD)**  
 **Target:** Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO  
 **Theme:** Hallucination-Aware Uncertainty Mapping & Satellite Provenance
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-The **SIH26142 Super-Resolution Mapping (SRM)** system addresses a fundamental limitation in spaceborne optical earth observation: **Sentinel-2 MSI provides free, 5-day revisit multi-spectral imagery at 10m Ground Sample Distance (GSD), but village infrastructure, rural roads, bridge spans, and cadastral parcels require sub-4m spatial resolution.**
+The **UKIS-2026 Super-Resolution Mapping (SRM)** system addresses a fundamental limitation in spaceborne optical earth observation: **Sentinel-2 MSI provides free, 5-day revisit multi-spectral imagery at 10m Ground Sample Distance (GSD), but village infrastructure, rural roads, bridge spans, and cadastral parcels require sub-4m spatial resolution.**
 
 Conventional deep-learning super-resolution algorithms (e.g., standard GANs or unconstrained CNNs) frequently fabricate plausible-looking but non-existent ground structures—a fatal flaw for governance, defense, and cartography known as **AI hallucination**.
 
@@ -242,4 +242,4 @@ graph TD
 
 ---
 
-*Authored for the Smart India Hackathon (SIH26142) — Super-Resolution Mapping for Sentinel-2 Imagery.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Super-Resolution Mapping for Sentinel-2 Imagery.*

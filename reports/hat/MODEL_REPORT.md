@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-The **Hybrid Attention Transformer (HAT)** serves as the primary production engine in the SIH26142 platform. Adapted from the CVPR 2023 breakthrough *Activating More Pixels in Image Super-Resolution with Hybrid Attention Transformer* (Chen et al.), HAT synergizes:
+The **Hybrid Attention Transformer (HAT)** serves as the primary production engine in the UKIS-2026 platform. Adapted from the CVPR 2023 breakthrough *Activating More Pixels in Image Super-Resolution with Hybrid Attention Transformer* (Chen et al.), HAT synergizes:
 1. **Window-based Multi-Head Self-Attention (W-MSA)** to model sharp spatial boundaries, and
 2. **Channel Attention Blocks (CAB)** to capture inter-band spectral correlations across Sentinel-2 optical bands.
 

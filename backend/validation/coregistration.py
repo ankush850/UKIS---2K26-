@@ -47,7 +47,7 @@ class SpatialCoregister:
     """
 
     def __init__(self, temp_dir: Path | None = None):
-        self.temp_dir = temp_dir or Path(tempfile.gettempdir()) / "sih_coreg"
+        self.temp_dir = temp_dir or Path(tempfile.gettempdir()) / "UKIS-2026_coreg"
         self.temp_dir.mkdir(parents=True, exist_ok=True)
 
     def _save_temp_geotiff(

@@ -11,7 +11,7 @@
 
 **SwinIR** (*"SwinIR: Image Restoration Using Swin Transformer"*, Liang et al., ICCV 2021) was the foundational pioneer in adapting Hierarchical Vision Transformers for image restoration. It replaced traditional convolutional residual trunks with **Residual Swin Transformer Blocks (RSTB)** and **Shifted Window Multi-Head Self-Attention (SW-MSA)**.
 
-In the SIH26142 project, SwinIR serves as the direct evolutionary predecessor to **HAT (Hybrid Attention Transformer)**. Benchmarking SwinIR against HAT provides the exact technical and empirical justification for *why* HAT's overlapping cross-window attention and channel attention mechanisms were selected for our production GIS cartography pipeline.
+In the UKIS-2026 project, SwinIR serves as the direct evolutionary predecessor to **HAT (Hybrid Attention Transformer)**. Benchmarking SwinIR against HAT provides the exact technical and empirical justification for *why* HAT's overlapping cross-window attention and channel attention mechanisms were selected for our production GIS cartography pipeline.
 
 ---
 

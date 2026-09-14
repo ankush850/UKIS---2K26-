@@ -15,7 +15,7 @@ European Space Agency (ESA) ne apne landmark projects **EvoLand** aur **WorldStr
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-CARN ko SIH26142 platform me **International ESA Baseline & Low-Power Edge Survey Engine** banaya gaya hai. Real-life use cases:
+CARN ko UKIS-2026 platform me **International ESA Baseline & Low-Power Edge Survey Engine** banaya gaya hai. Real-life use cases:
 
 ### 1. Offline Field Survey Kits & Battery-Operated Tablets
 - **Problem:** Dur-daraz ke rural ya jungle ilakon me internet connectivity aur heavy power sources nahi hote. Field officers handheld battery devices use karte hain.

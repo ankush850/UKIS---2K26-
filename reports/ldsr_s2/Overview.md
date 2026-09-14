@@ -15,7 +15,7 @@ Classical models (jaise HAT, SRM-Net) single forward pass regression karte hain.
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-LDSR-S2 ko SIH26142 platform me **Generative Diffusion Research Baseline** banaya gaya hai. Real-life use cases:
+LDSR-S2 ko UKIS-2026 platform me **Generative Diffusion Research Baseline** banaya gaya hai. Real-life use cases:
 
 ### 1. Multi-Spectral 4-Band Synthesis (RGB + NIR Band 8)
 - **Problem:** Zyadatar commercial SR models sirf standard 3-band RGB support karte hain, jisse agricultural analysis ke liye NIR (Near Infrared) band miss ho jata hai.

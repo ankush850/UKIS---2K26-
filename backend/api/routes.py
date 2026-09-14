@@ -1,5 +1,5 @@
 """
-FastAPI Routes for SIH26142 Super Resolution Mapping API.
+FastAPI Routes for UKIS-2026 Super Resolution Mapping API.
 100% Real computation:
 - Real Sentinel-2 L2A tile fetching from Copernicus CDSE with disk caching
 - Real PyTorch SRM-Net super-resolution model inference
@@ -794,7 +794,7 @@ async def super_resolve(req: SRRequest | None = None):
         ref_message = "No ground truth reference available for this custom AOI. Evaluated with No-Reference Assessment."
 
     # Register Tile on Polygon Amoy Blockchain Provenance Module
-    tile_id = current_session.get("metadata", {}).get("aoi_id", "sih_tile_001")
+    tile_id = current_session.get("metadata", {}).get("aoi_id", "UKIS-2026_tile_001")
     blockchain_record = provenance_manager.register_tile(
         tile_id=tile_id,
         image_data=display_sr,
@@ -1020,7 +1020,7 @@ async def download_result(item_type: str, format: str = "png"):
                     rb.SetDescription(band_names[b])
 
             gtiff_driver = gdal.GetDriverByName("GTiff")
-            temp_tif = Path(tempfile.gettempdir()) / f"sih26142_sr_{uuid.uuid4().hex[:8]}.tif"
+            temp_tif = Path(tempfile.gettempdir()) / f"UKIS-2026_sr_{uuid.uuid4().hex[:8]}.tif"
             out_ds = gtiff_driver.CreateCopy(str(temp_tif), ds)
             out_ds.FlushCache()
             out_ds = None
@@ -1033,7 +1033,7 @@ async def download_result(item_type: str, format: str = "png"):
             return Response(
                 content=tif_bytes,
                 media_type="image/tiff",
-                headers={"Content-Disposition": f"attachment; filename=sih26142_{aoi_id}_sr_2.5m_raw_reflectance.tif"}
+                headers={"Content-Disposition": f"attachment; filename=UKIS-2026_{aoi_id}_sr_2.5m_raw_reflectance.tif"}
             )
         except Exception as e:
             print(f"[Export Error] Failed to export GeoTIFF via GDAL: {e}")
@@ -1047,7 +1047,7 @@ async def download_result(item_type: str, format: str = "png"):
         return Response(
             content=geojson_str,
             media_type="application/geo+json",
-            headers={"Content-Disposition": f"attachment; filename=sih26142_infrastructure_{aoi_id}.geojson"}
+            headers={"Content-Disposition": f"attachment; filename=UKIS-2026_infrastructure_{aoi_id}.geojson"}
         )
 
     if item_type in ["cloud_mask", "cloud"]:
@@ -1098,7 +1098,7 @@ async def download_result(item_type: str, format: str = "png"):
     return Response(
         content=buf.getvalue(),
         media_type="image/png",
-        headers={"Content-Disposition": f"attachment; filename=sih26142_{item_type}_output.png"}
+        headers={"Content-Disposition": f"attachment; filename=UKIS-2026_{item_type}_output.png"}
     )
 
 

@@ -15,7 +15,7 @@ Traditional Convolutional Neural Networks (CNNs) images ko zoom karte waqt edges
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-HAT ko SIH26142 platform me **Official Production GIS Cartography Engine** banaya gaya hai. Real-life me iske mukhya upayog:
+HAT ko UKIS-2026 platform me **Official Production GIS Cartography Engine** banaya gaya hai. Real-life me iske mukhya upayog:
 
 ### 1. Cadastral Land Parcel Demarcation (Khet aur Zameen ki Boundary Marking)
 - **Problem:** 10m Sentinel-2 data me do kisanon ke khet ke beech ki medh (boundary) 1 pixel me simat jati hai, jisse boundary vivaad suljhana namumkin hota hai.

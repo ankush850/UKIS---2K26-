@@ -1,5 +1,5 @@
 # Problem Statement & Solution Documentation
-**Project ID:** SIH26142  
+**Project ID:** UKIS-2026  
 **Theme:** Space Technology / Earth Observation  
 **Project Name:** GEO-SRM (Super Resolution Mapping)
 
@@ -10,7 +10,7 @@ The rapid monitoring of Earth's surface for agricultural policy, disaster manage
 
 ---
 
-## 2. The Problem Statement Analysis (SIH26142)
+## 2. The Problem Statement Analysis (UKIS-2026)
 **Target Objective:** *To develop a Super-Resolution Mapping (SRM) software capable of upscaling Sentinel-2 satellite imagery from a 10m Ground Sample Distance (GSD) to sub-4m (<4m) GSD.*
 
 ### The Core Challenges:

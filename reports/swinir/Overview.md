@@ -7,7 +7,7 @@
 Simple shabdon me:
 > **SwinIR traditional convolution layers ke bajaye Shifted Window Self-Attention (SW-MSA) use karta hai taaki satellite image ke door-door ke pixels aur complex structural patterns ko ek sath samajh kar 4x upscale (10m to 2.5m) kar sake.**
 
-Hamare SIH26142 platform me SwinIR ek bohot important **Architectural Benchmark** ke roop me kaam karta hai:
+Hamare UKIS-2026 platform me SwinIR ek bohot important **Architectural Benchmark** ke roop me kaam karta hai:
 - Yeh **HAT (Hybrid Attention Transformer)** ka direct predecessor (purvaj) hai.
 - Isse evaluate karke hum hackathon judges aur scientists ko yeh dikhate hain ki *"SwinIR ke standard Shifted Window mechanism ke mukable kyu HAT ka Overlapping Attention aur Channel Attention satellite mapping ke liye behtar hai."*
 
@@ -15,7 +15,7 @@ Hamare SIH26142 platform me SwinIR ek bohot important **Architectural Benchmark*
 
 ## 2. Real-Life Use Cases (Asli Duniya me Kaha Use Hota Hai?)
 
-SwinIR ko SIH26142 platform me **High-Capacity Vision Transformer Architectural Benchmark** banaya gaya hai. Real-life use cases:
+SwinIR ko UKIS-2026 platform me **High-Capacity Vision Transformer Architectural Benchmark** banaya gaya hai. Real-life use cases:
 
 ### 1. Complex Urban Settlement & Building Polygon Mapping
 - **Problem:** Ghaney shehari ilakon (jaise Delhi NCR ya Varanasi) me makano ki chattein aur galiyan aapas me chipki rehti hain. Standard CNNs inke edges ko aapas me mix (smudge) kar dete hain.

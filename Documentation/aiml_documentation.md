@@ -1,4 +1,4 @@
-# SIH26142 — AI/ML Architecture & Workflow Documentation
+# UKIS-2026 — AI/ML Architecture & Workflow Documentation
 
 Yeh documentation project me use hue saare **Machine Learning (ML)** aur **Deep Learning (DL)** models, unke workflows, aur unke use-cases ko detail me explain karti hai. Project ka main goal Sentinel-2 satellite imagery (10m resolution) ko super-resolve karke <4m (2.5m) tak le jana hai, saath me ek "Hallucination-Aware Uncertainty" layer provide karna hai taaki AI ke banaye hue fake features (hallucinations) ko detect kiya ja sake.
 

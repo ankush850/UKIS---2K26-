@@ -1,7 +1,7 @@
 # NETRA: Networked Earth Trust Record Architecture
 ## Master Project Dossier: Overview, Purpose, USP, Tech Stack, Model Zoo & Blockchain Provenance
 
-**Project Identifier:** SIH26142  
+**Project Identifier:** UKIS-2026  
 **System Name:** GEO-SRM with **NETRA** (Networked Earth Trust Record Architecture)  
 **Target Beneficiaries:** Ministry of Development of North Eastern Region (DoNER) / North Eastern Space Applications Centre (NESAC) / Indian Space Research Organisation (ISRO)  
 **Team:** Team KC Studio  
@@ -24,7 +24,7 @@
 
 ## 1. Project Introduction
 
-The **SIH26142 (GEO-SRM)** project is a production-grade remote sensing and deep-learning software system designed to address the spatial resolution bottleneck in open-access spaceborne Earth Observation (EO). 
+The **UKIS-2026 (GEO-SRM)** project is a production-grade remote sensing and deep-learning software system designed to address the spatial resolution bottleneck in open-access spaceborne Earth Observation (EO). 
 
 The European Space Agency's (ESA) **Copernicus Sentinel-2** satellite constellation captures 13 multi-spectral bands across global landmasses with a 5-day revisit cycle. While Sentinel-2 data is completely free and radiometrically calibrated, its highest spatial resolution is physically capped at **10 meters Ground Sample Distance (GSD)**.
 
@@ -46,7 +46,7 @@ We enhance 10m Sentinel-2 multi-spectral tiles to **2.5m GSD (a $4\times$ spatia
 +--------------------------------------------------------------------------------------------------+
 |                                     THE MISSION FOR DoNER / NESAC                                |
 +--------------------------------------------------------------------------------------------------+
-|  Copernicus Sentinel-2 (10m GSD)             SIH26142 Super-Resolution       NETRA Blockchain   |
+|  Copernicus Sentinel-2 (10m GSD)             UKIS-2026 Super-Resolution       NETRA Blockchain   |
 |  - Free, 5-day global revisit       ====>   - 2.5m GSD (<4m target)   ====>  - SHA-256 Hash      |
 |  - Village roads & bridges blurred           - Hallucination-Aware            - Sub-11cm Anchor   |
 |  - High-res commercial satellites            - Preserved Radiance             - Version Chain     |
@@ -262,4 +262,4 @@ When presenting this project to hackathon judges, defense cartographers, or ISRO
 - ⛓️ **Smart Contract Source:** [`contracts/TileProvenance.sol`](contracts/TileProvenance.sol)
 
 ---
-*Authored for the Smart India Hackathon (SIH26142) — Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Ministry of Development of North Eastern Region (DoNER) / NESAC / ISRO.*
