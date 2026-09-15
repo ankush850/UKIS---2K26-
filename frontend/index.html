@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=Montserrat:wght@700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
     <!-- Leaflet & Leaflet.draw CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -90,10 +90,11 @@
             border: 1px solid rgba(0, 229, 255, 0.45) !important;
             color: #00e5ff !important;
             padding: 0 9px !important;
-            height: 27px !important;
+            height: 34px !important;
             border-radius: 5px !important;
-            font-size: 0.72rem !important;
+            font-size: 0.8rem !important;
             font-weight: 600 !important;
+            padding: 0 12px !important;
             cursor: pointer !important;
             transition: all 0.15s ease !important;
             flex-shrink: 0 !important;
@@ -205,50 +206,96 @@
                 </p>
             </div>
         </div>
-        <!-- Top Navigation View Switcher (v4 mode pills) -->
-        <nav class="top-nav-tabs" aria-label="Main Application Views">
-            <button type="button" id="nav-btn-sr" class="top-nav-btn active" title="Super-Resolution, Uncertainty & Infrastructure" onclick="switchTopView('sr')">
-                <span class="top-nav-icon">🛰️</span>
-                <span class="top-nav-title">Super-Resolution &amp; Trust</span>
+        <!-- Top Navigation View Switcher (Independent Modules Architecture) -->
+        <nav class="top-nav-tabs" aria-label="Global Primary Application Modules" role="tablist">
+            <button type="button" id="nav-btn-satellite" class="top-nav-btn active" role="tab" aria-selected="true" title="Satellite Wide-Area Triage: Sentinel-2 SR (10m → 2.5m) + MC-Dropout Uncertainty" onclick="switchTopView('satellite')">
+                <svg class="top-nav-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10a7.5 7.5 0 0 0 16 0"></path><path d="M2 10h20"></path><path d="M12 10v10"></path><path d="M8 20h8"></path><circle cx="12" cy="5" r="2"></circle></svg>
+                <span class="top-nav-title">Satellite Triage</span>
+                <span class="top-nav-badge" style="background: rgba(59, 130, 246, 0.2); border-color: rgba(59, 130, 246, 0.6); color: #93c5fd;">STANDALONE</span>
             </button>
-            <button type="button" id="nav-btn-spectral" class="top-nav-btn" title="Multi-Band Spectral Indices & Disaster Analysis" onclick="switchTopView('spectral')">
-                <span class="top-nav-icon">🌱</span>
-                <span class="top-nav-title">Spectral &amp; Disaster Analysis</span>
-                <span class="top-nav-badge">NEW</span>
+            <button type="button" id="nav-btn-drone" class="top-nav-btn" role="tab" aria-selected="false" title="Tactical Drone Ground-Truth Verification: DeepLabV3+ Segmentation + Overpass OSM + SiamUnet" onclick="switchTopView('drone')">
+                <svg class="top-nav-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="18" r="2"></circle></svg>
+                <span class="top-nav-title">Drone Verification</span>
+                <span class="top-nav-badge" style="background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5;">STANDALONE</span>
+            </button>
+            <button type="button" id="nav-btn-compare" class="top-nav-btn" role="tab" aria-selected="false" title="Optional Cross-Reference: Satellite Macro Candidate vs Drone Ground Truth Side-by-Side" onclick="switchTopView('compare')">
+                <svg class="top-nav-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                <span class="top-nav-title">Compare</span>
+                <span class="top-nav-badge" style="background: rgba(168, 85, 247, 0.2); border-color: rgba(168, 85, 247, 0.6); color: #d8b4fe;">OPTIONAL</span>
             </button>
         </nav>
         <script>
             window.switchTopView = function(viewName) {
-                console.log('[GEO-SRM] Immediate switchTopView to:', viewName);
-                var btnSr = document.getElementById("nav-btn-sr");
+                console.log('[NETRA] Immediate switchTopView to:', viewName);
+                var btnSat = document.getElementById("nav-btn-satellite") || document.getElementById("nav-btn-sr");
+                var btnDrone = document.getElementById("nav-btn-drone") || document.getElementById("nav-btn-aerial");
+                var btnCompare = document.getElementById("nav-btn-compare");
                 var btnSpectral = document.getElementById("nav-btn-spectral");
+
                 var srContainer = document.getElementById("view-sr-mapping");
                 var spectralContainer = document.getElementById("view-spectral-analysis");
+                var aerialContainer = document.getElementById("view-aerial-assessment");
+                var compareContainer = document.getElementById("view-compare");
+
+                // Reset all tabs
+                if (btnSat) btnSat.classList.remove("active");
+                if (btnDrone) btnDrone.classList.remove("active");
+                if (btnCompare) btnCompare.classList.remove("active");
+                if (btnSpectral) btnSpectral.classList.remove("active");
+
+                // Reset all view containers
+                if (srContainer) {
+                    srContainer.classList.add("hidden");
+                    srContainer.style.setProperty("display", "none", "important");
+                }
+                if (spectralContainer) {
+                    spectralContainer.classList.add("hidden");
+                    spectralContainer.style.setProperty("display", "none", "important");
+                }
+                if (aerialContainer) {
+                    aerialContainer.classList.add("hidden");
+                    aerialContainer.style.setProperty("display", "none", "important");
+                }
+                if (compareContainer) {
+                    compareContainer.classList.add("hidden");
+                    compareContainer.style.setProperty("display", "none", "important");
+                }
 
                 if (viewName === "spectral") {
-                    if (btnSr) btnSr.classList.remove("active");
-                    if (btnSpectral) btnSpectral.classList.add("active");
-                    if (srContainer) {
-                        srContainer.classList.add("hidden");
-                        srContainer.style.setProperty("display", "none", "important");
-                    }
+                    if (btnSat) btnSat.classList.add("active");
                     if (spectralContainer) {
                         spectralContainer.classList.remove("hidden");
                         spectralContainer.style.setProperty("display", "block", "important");
                     }
-                } else {
-                    if (btnSpectral) btnSpectral.classList.remove("active");
-                    if (btnSr) btnSr.classList.add("active");
-                    if (spectralContainer) {
-                        spectralContainer.classList.add("hidden");
-                        spectralContainer.style.setProperty("display", "none", "important");
+                } else if (viewName === "drone" || viewName === "aerial") {
+                    if (btnDrone) btnDrone.classList.add("active");
+                    if (aerialContainer) {
+                        aerialContainer.classList.remove("hidden");
+                        aerialContainer.style.setProperty("display", "block", "important");
                     }
+                } else if (viewName === "compare") {
+                    if (btnCompare) btnCompare.classList.add("active");
+                    if (compareContainer) {
+                        compareContainer.classList.remove("hidden");
+                        compareContainer.style.setProperty("display", "block", "important");
+                    }
+                } else {
+                    // Satellite Triage (Default)
+                    if (btnSat) btnSat.classList.add("active");
                     if (srContainer) {
                         srContainer.classList.remove("hidden");
                         srContainer.style.setProperty("display", "block", "important");
                     }
                 }
 
+                var dashTabsEl = document.getElementById("dash-tabs");
+                if (dashTabsEl) {
+                    if (viewName === "drone" || viewName === "aerial" || viewName === "compare") {
+                        dashTabsEl.style.display = "none";
+                    } else {
+                        dashTabsEl.style.display = "flex";
+                    }
+                }
                 if (typeof window.onViewSwitched === "function") {
                     window.onViewSwitched(viewName);
                 } else {
@@ -271,7 +318,7 @@
     </header>
 
     <!-- v4 Sub-Tab Navigation -->
-    <nav class="dash-tabs" id="dash-tabs">
+    <nav class="dash-tabs" id="dash-tabs" aria-label="Satellite Workspace Sections" role="tablist">
         <button class="active" data-dash-page="viewer"><span class="tab-n">01</span>Viewer</button>
         <button data-dash-page="config"><span class="tab-n">02</span>Configuration</button>
         <button data-dash-page="analytics"><span class="tab-n">03</span>Analytics &amp; provenance</button>
@@ -280,8 +327,18 @@
     <!-- ======== DASH PAGE 1: VIEWER (SR + Spectral views) ======== -->
     <div class="dash-page active" id="dash-page-viewer">
 
-    <!-- View 1: Super-Resolution & Trust Workspace -->
+    <!-- View 1: Super-Resolution & Trust Workspace (Satellite Module) -->
     <div id="view-sr-mapping" class="app-view-container active">
+        <!-- Satellite Sub-Mode Switcher -->
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between; background: var(--panel); padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-weight: 700; font-size: 0.82rem; color: #93c5fd; letter-spacing: 0.3px;">🛰️ Satellite Triage Workspace:</span>
+                <button type="button" class="btn btn-sm btn-primary" style="font-size: 0.76rem; padding: 3px 10px;">Super-Resolution &amp; Uncertainty (10m → 2.5m)</button>
+                <button type="button" class="btn btn-sm btn-outline" style="font-size: 0.76rem; padding: 3px 10px; border-color: rgba(16, 185, 129, 0.4); color: #34d399;" onclick="switchTopView('spectral')">🌱 Multispectral Indices (NDVI / NDWI / NBR / NDBI) &rarr;</button>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-3); font-family: var(--mono);">Copernicus Sentinel-2 L2A</span>
+        </div>
+    <h2 class="sr-only">Satellite Wide-Area Triage Workspace</h2>
     <main class="workspace-grid">
         <!-- Sidebar Controls & AOI -->
         <aside class="sidebar-panel" aria-label="Pipeline Controls and AOI Selection">
@@ -734,8 +791,17 @@
     </main>
     </div><!-- /view-sr-mapping -->
 
-    <!-- View 2: Dedicated Spectral & Disaster Analysis Workspace -->
+    <!-- View 2: Dedicated Spectral & Disaster Analysis Workspace (Satellite Module) -->
     <div id="view-spectral-analysis" class="app-view-container hidden">
+        <!-- Spectral Sub-Mode Switcher -->
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: space-between; background: var(--panel); padding: 8px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-weight: 700; font-size: 0.78rem; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px;">🌱 SPECTRAL INDICES WORKSPACE:</span>
+                <button type="button" class="btn btn-sm btn-outline" style="font-size: 0.76rem; padding: 3px 10px; border-color: rgba(59, 130, 246, 0.4); color: #93c5fd;" onclick="switchTopView('satellite')">&larr; 🛰️ Super-Resolution &amp; Uncertainty</button>
+                <button type="button" class="btn btn-sm btn-primary" style="font-size: 0.76rem; padding: 3px 10px; background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #34d399;">Multispectral Indices (Active)</button>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-3); font-family: var(--mono);">Float32 BOA Reflectance</span>
+        </div>
         <main class="workspace-grid spectral-workspace-grid">
             <!-- Left Sidebar: Replicated Shared AOI Selection -->
             <aside class="sidebar-panel" aria-label="Spectral Analysis AOI Selection">
@@ -1027,6 +1093,606 @@
         </main>
     </div><!-- /view-spectral-analysis -->
 
+    <!-- View 3: Netra Aerial — Drone-Based Disaster & Infrastructure Assessment -->
+    <div id="view-aerial-assessment" class="app-view-container hidden">
+        <!-- Top Disaster Triage & Operational Status Strip -->
+        <div class="aerial-op-strip">
+            <div class="aerial-op-left">
+                <div class="aerial-badge-pulse">
+                    <span class="pulse-orb" style="background:#ef4444;box-shadow:0 0 10px #ef4444;"></span>
+                    <span class="aerial-badge-text">DMMC DISASTER TRIAGE ACTIVE</span>
+                </div>
+                <div class="aerial-sector-title">
+                    <span id="aerial-active-sector-name">Chamoli - Rishi Ganga Flash Flood</span>
+                    <span class="aerial-sector-sub" id="aerial-active-district">Chamoli, Uttarakhand · Problem P-008</span>
+                </div>
+            </div>
+            <div class="aerial-op-weather" id="aerial-weather-hud">
+                <span class="weather-icon">⛅</span>
+                <span id="aerial-weather-temp">17.2°C</span>
+                <span class="weather-divider">|</span>
+                <span id="aerial-weather-wind">💨 14 km/h Wind</span>
+                <span class="weather-divider">|</span>
+                <span class="badge-flight-clearance" id="aerial-flight-badge" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399; text-transform: none;">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-right:6px;box-shadow:0 0 6px #10b981;"></span>Cleared for Drone Flight
+                </span>
+            </div>
+            <div class="aerial-op-actions">
+                <button type="button" class="btn btn-outline-aerial aerial-action-btn" id="btn-toggle-drone-stream" onclick="window.toggleDroneLiveStream()" title="Simulate real-time drone sortie over sector">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    <span id="stream-btn-text">Simulate Live Feed</span>
+                </button>
+                <button type="button" class="btn btn-outline-aerial aerial-action-btn" id="btn-export-aerial-geojson" onclick="window.exportAerialGeoJSON()" title="Export tactical hazard vectors as GeoJSON">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span>Export GeoJSON</span>
+                </button>
+                <button type="button" class="btn btn-primary-aerial aerial-action-btn aerial-primary-deliverable" id="btn-generate-dmmc-report" onclick="window.openDMMCReportModal()" title="Compile official DMMC briefing report PDF">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Generate DMMC Report</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="aerial-content-wrapper">
+            <h2 class="sr-only">Tactical Drone Ground-Truth Verification Workspace</h2>
+            <!-- Section 1: Viewer Layout (Sidebar + Map pairing) -->
+            <div class="viewer-layout aerial-viewer-layout">
+                <!-- Left Column: Disaster Presets & Tactical Layer Controls -->
+                <aside class="sidebar-panel aerial-sidebar" aria-label="Aerial Disaster Controls">
+                    <!-- Preset Disaster Scenarios Card -->
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <h3 class="panel-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                                </svg>
+                                Uttarakhand Disaster Presets
+                            </h3>
+                            <span class="card-badge card-badge-rose">DMMC ZONES</span>
+                        </div>
+                        <p class="panel-desc">Curated mountain disaster sectors evaluated under Problem Statement P-008.</p>
+                        
+                        <div class="aerial-preset-list" id="aerial-preset-list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Tactical Drone Layer Controls Card -->
+                    <div class="panel-card">
+                        <div class="panel-card-header">
+                            <h3 class="panel-title">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                                    <polyline points="2 12 12 17 22 12"></polyline>
+                                    <polyline points="2 17 12 22 22 17"></polyline>
+                                </svg>
+                                Tactical Layer Controls
+                            </h3>
+                            <span class="card-badge card-badge-rose">GROUND TRUTH</span>
+                        </div>
+                        <p class="panel-desc">Tactical sub-decimeter ground verification. Independent drone layer visualization.</p>
+                        
+                        <div class="triage-mode-toggle">
+                            <button type="button" class="triage-pill active" id="triage-mode-drone" onclick="window.setTriageLayerMode('drone')">
+                                🚁 Drone Ground-Truth (0.05m GSD)
+                            </button>
+                            <button type="button" class="triage-pill" id="triage-mode-both" onclick="window.setTriageLayerMode('both')">
+                                🛰️ + 🚁 Both Layers
+                            </button>
+                            <button type="button" class="triage-pill" id="triage-mode-satellite" onclick="window.setTriageLayerMode('satellite')">
+                                🛰️ Satellite AOI Only
+                            </button>
+                        </div>
+
+                        <div class="callout-box-purple" style="margin-top: 8px; font-size: 0.73rem; line-height: 1.4;">
+                            <strong>ISRO / NRSC Ground Truth:</strong> Riparian hazard extents grounded in ISRO Bhuvan 2013 Kedarnath Study (Resourcesat-2 LISS-IV) &amp; NRSC Landslide Atlas.
+                        </div>
+
+                        <div class="aerial-filter-options">
+                            <label class="filter-cb-item">
+                                <input type="checkbox" id="cb-layer-flood" checked onchange="window.updateAerialFilterLayers()">
+                                <span class="filter-dot dot-cyan"></span>
+                                <span>Flooded / Inundated Zones</span>
+                            </label>
+                            <label class="filter-cb-item">
+                                <input type="checkbox" id="cb-layer-debris" checked onchange="window.updateAerialFilterLayers()">
+                                <span class="filter-dot dot-amber"></span>
+                                <span>Landslides &amp; Debris Tongues</span>
+                            </label>
+                            <label class="filter-cb-item">
+                                <input type="checkbox" id="cb-layer-buildings" checked onchange="window.updateAerialFilterLayers()">
+                                <span class="filter-dot dot-red"></span>
+                                <span>Damaged Building Footprints</span>
+                            </label>
+                            <label class="filter-cb-item">
+                                <input type="checkbox" id="cb-layer-roads" checked onchange="window.updateAerialFilterLayers()">
+                                <span class="filter-dot dot-green"></span>
+                                <span>Road Passability (Overpass OSM)</span>
+                            </label>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Right Column: Dual-Layer Tactical Map & Simulated Drone Live HUD Viewport -->
+                <section class="viewport-panel aerial-viewport-panel" aria-label="Aerial Map and Live HUD Viewport">
+                    <!-- View Mode Switcher: Map vs Live Stream -->
+                    <div class="aerial-view-tabs">
+                        <button type="button" class="aerial-tab-btn active" id="btn-tab-aerial-map" onclick="window.switchAerialMainTab('map')">
+                            🗺️ Dual-Layer Tactical Map
+                        </button>
+                        <button type="button" class="aerial-tab-btn" id="btn-tab-aerial-hud" onclick="window.switchAerialMainTab('hud')">
+                            📹 Live Drone Video HUD &amp; Telemetry
+                            <span class="hud-live-tag">SIMULATED</span>
+                        </button>
+                    </div>
+
+                    <!-- Pane 1: Tactical Leaflet Map -->
+                    <div class="aerial-pane-content" id="pane-aerial-map">
+                        <div class="aerial-map-container" style="height: 600px; position: relative;">
+                            <div id="aerial-leaflet-map" style="width: 100%; height: 100%; border-radius: 8px;"></div>
+                            <!-- Floating Map Legend -->
+                            <div class="aerial-map-legend">
+                                <div class="legend-header">Triage Severity</div>
+                                <div class="legend-item"><span class="legend-chip chip-red"></span> High Priority (Critical)</div>
+                                <div class="legend-item"><span class="legend-chip chip-amber"></span> Medium (Secondary Triage)</div>
+                                <div class="legend-item"><span class="legend-chip chip-green"></span> Low / Passable</div>
+                                <div class="legend-header" style="margin-top: 6px;">Road Corridors</div>
+                                <div class="legend-item"><span class="legend-chip chip-green-line"></span> Passable Highway</div>
+                                <div class="legend-item"><span class="legend-chip chip-red-line"></span> Blocked / Inundated</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pane 2: Live Drone Video HUD Simulator -->
+                    <div class="aerial-pane-content hidden" id="pane-aerial-hud">
+                        <!-- HUD Source Switcher Controls -->
+                        <div class="hud-source-toolbar">
+                            <span class="hud-source-title">FEED SOURCE:</span>
+                            <div class="hud-source-toggle-group">
+                                <button type="button" class="hud-source-pill active" id="btn-src-video" onclick="window.setLiveStreamSourceMode('video')">
+                                    📹 Pre-Recorded Sortie
+                                </button>
+                                <button type="button" class="hud-source-pill" id="btn-src-image" onclick="window.setLiveStreamSourceMode('static_image')">
+                                    📷 Simulated Flight Pass (Static Image)
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-aerial" id="btn-hud-load-static" onclick="document.getElementById('hud-static-file-input').click()" style="display:none; font-size: 11px; padding: 2px 8px;">
+                                📂 Load Custom Aerial Photo
+                            </button>
+                            <input type="file" id="hud-static-file-input" accept="image/*" style="display:none;" onchange="window.handleHudStaticImageSelected(event)">
+                        </div>
+
+                        <div class="drone-hud-viewport">
+                            <div class="drone-hud-frame-wrap" id="drone-hud-wrap">
+                                <!-- Drone Video / Frame Canvas -->
+                                <img id="hud-frame-image" src="" alt="Live Drone Video Stream" class="hud-video-frame">
+                                <img id="hud-overlay-image" src="" alt="Live Segmentation Overlay" class="hud-segmentation-overlay">
+
+                                <!-- Avionics HUD OSD Overlay -->
+                                <div class="hud-osd-overlay">
+                                    <!-- Top Honesty Badge (Distinct per mode) -->
+                                    <div class="hud-stream-honesty-badge" id="hud-honesty-badge" title="Simulation honesty indicator">
+                                        <span class="pulse-dot-amber">●</span> <span id="hud-honesty-badge-text">PRE-RECORDED SORTIE STREAMED FRAME-BY-FRAME VIA REAL PYTORCH PIPELINE</span>
+                                    </div>
+
+                                    <!-- Top Bar -->
+                                    <div class="hud-osd-top">
+                                        <div class="hud-stat-box">
+                                            <span class="hud-lbl">MODE</span>
+                                            <span class="hud-val" id="hud-flight-mode">AUTONOMOUS SURVEY</span>
+                                        </div>
+                                        <div class="hud-heading-tape">
+                                            <span>HDG</span> <span id="hud-heading">145°</span>
+                                        </div>
+                                        <div class="hud-stat-box">
+                                            <span class="hud-lbl">BATTERY</span>
+                                            <span class="hud-val green" id="hud-battery">84%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Artificial Horizon Crosshairs -->
+                                    <div class="hud-crosshairs">
+                                        <div class="hud-horizon-line" id="hud-horizon"></div>
+                                        <div class="hud-pitch-ladder"></div>
+                                        <div class="hud-reticle"></div>
+                                    </div>
+
+                                    <!-- Side Tapes -->
+                                    <div class="hud-speed-tape">
+                                        <span class="hud-lbl">AIRSPEED</span>
+                                        <span class="hud-tape-val" id="hud-speed">14.2 m/s</span>
+                                        <span class="hud-tape-unit">51.1 km/h</span>
+                                    </div>
+
+                                    <div class="hud-alt-tape">
+                                        <span class="hud-lbl">ALTITUDE</span>
+                                        <span class="hud-tape-val" id="hud-alt">120.4 m</span>
+                                        <span class="hud-tape-unit">AGL (GPS LOCK)</span>
+                                    </div>
+
+                                    <!-- Bottom Bar -->
+                                    <div class="hud-osd-bottom">
+                                        <div class="hud-coords" id="hud-coords">30.4850° N, 79.5450° E</div>
+                                        <div class="hud-live-hazards">
+                                            <span class="hazard-badge-live" id="hud-hazard-flood">🌊 Inundated: 32.4%</span>
+                                            <span class="hazard-badge-live" id="hud-hazard-debris">⛰️ Debris: 21.8%</span>
+                                            <span class="hazard-badge-live" id="hud-hazard-bldg">🏚️ Damaged: 14.5%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- HUD Playback Controls Strip -->
+                            <div class="hud-playback-controls">
+                                <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-play" onclick="window.hudPlay()">▶ Play</button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-pause" onclick="window.hudPause()">⏸ Pause</button>
+                                <input type="range" id="hud-scrubber" min="0" max="59" value="0" class="hud-scrubber" oninput="window.hudSeek(this.value)">
+                                <button type="button" class="btn btn-sm btn-outline" id="btn-hud-speed" onclick="window.hudCycleSpeed()">1.0x</button>
+                                <button type="button" class="btn btn-sm btn-outline" id="btn-hud-fullscreen" onclick="window.hudToggleFullscreen()">⛶ Fullscreen</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div><!-- /viewer-layout -->
+
+            <!-- Section 2: Report Widgets (Responsive 2-Column Grid on Desktop, 1 on Mobile) -->
+            <div class="report-grid aerial-report-grid">
+                <!-- 1. Custom Drone Inspection & Unified Inspection Report -->
+                <div class="panel-card" id="custom-inspection-card">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            Unified Inspection Report &amp; Field Upload
+                        </h3>
+                        <span class="card-badge card-badge-purple">FULL PIPELINE</span>
+                    </div>
+                    <p class="panel-desc">Upload drone field photo or pre/post pair to run segmentation, severity scoring, road passability, and damage assessment.</p>
+
+                    <!-- Dual Slot Upload Containers -->
+                    <div class="custom-upload-grid">
+                        <div class="custom-upload-slot" id="slot-post-img" onclick="document.getElementById('aerial-post-file-input').click()">
+                            <input type="file" id="aerial-post-file-input" accept="image/*" style="display:none;" onchange="window.handlePostImageSelected(event)">
+                            <div class="slot-content">
+                                <span class="slot-tag post">POST / FIELD PHOTO (REQUIRED)</span>
+                                <span class="slot-icon" id="slot-post-icon">📷</span>
+                                <span class="slot-name" id="slot-post-name">Click to select drone photo</span>
+                                <span class="upload-hint" id="slot-post-hint">Auto-extracts EXIF GPS</span>
+                            </div>
+                        </div>
+
+                        <div class="custom-upload-slot" id="slot-pre-img" onclick="document.getElementById('aerial-pre-file-input').click()">
+                            <input type="file" id="aerial-pre-file-input" accept="image/*" style="display:none;" onchange="window.handlePreImageSelected(event)">
+                            <div class="slot-content">
+                                <span class="slot-tag pre">PRE BASELINE (OPTIONAL)</span>
+                                <span class="slot-icon" id="slot-pre-icon">📂</span>
+                                <span class="slot-name" id="slot-pre-name">Optional pre-event photo</span>
+                                <span class="upload-hint">Enables SiamUnet damage</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Geolocation / Sector Confirmation Helper -->
+                    <div class="custom-geo-helper" style="margin-top: 10px;">
+                        <label style="font-size: 0.72rem; color: var(--text-2); display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>GEOLOCATION (FOR ROAD ACCESSIBILITY)</span>
+                            <span id="geo-source-label" style="color: #38bdf8; font-family: var(--mono); font-size: 0.7rem;">Auto-Detect EXIF</span>
+                        </label>
+                        <select id="custom-sector-select" class="config-select custom-sector-select-constrained" onchange="window.onCustomSectorChanged(this.value)">
+                            <option value="auto">Auto-detect GPS from image EXIF</option>
+                            <option value="chamoli">Chamoli / Rishi Ganga (30.485°N, 79.545°E)</option>
+                            <option value="rishikesh">Rishikesh / Ganges Corridor (30.100°N, 78.300°E)</option>
+                            <option value="kedarnath">Kedarnath / Mandakini (30.735°N, 79.066°E)</option>
+                            <option value="joshimath">Joshimath Subsidence (30.556°N, 79.565°E)</option>
+                            <option value="none">No location (Skip road accessibility)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn btn-primary-aerial btn-block-mt" id="btn-run-full-inspection" onclick="window.submitFullCustomInspection()" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <span>Run Full Drone Pipeline</span>
+                    </button>
+
+                    <!-- Unified Inspection Result Panel (Renders directly under upload box) -->
+                    <div id="unified-inspection-result-panel" class="unified-result-panel hidden">
+                        <!-- Dynamically populated by app.js -->
+                    </div>
+                </div>
+
+                <!-- 2. Zone Triage & Confidence Delta Card -->
+                <div class="panel-card" id="card-aerial-delta">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 20V10M18 20V4M6 20v-4"></path>
+                            </svg>
+                            Disaster Verification Delta
+                        </h3>
+                        <span class="card-badge" id="aerial-zone-badge">FUSED CONFIRMED</span>
+                    </div>
+                    <p class="panel-desc">Multi-sensor cross-validation resolving satellite uncertainty via tactical drone sortie.</p>
+                    <div class="triage-status-banner" id="aerial-triage-banner">
+                        <div class="triage-headline" id="aerial-triage-headline">Tapovan Gorge Riparian Surge Confirmed</div>
+                        <div class="triage-sub" id="aerial-triage-sub">Multi-sensor cross-validation resolved satellite uncertainty spike.</div>
+                    </div>
+
+                    <div class="confidence-delta-meter">
+                        <div class="conf-bars-wrap">
+                            <div class="conf-bar-row">
+                                <span>Satellite (Sentinel-2 SR)</span>
+                                <div class="bar-track"><div class="bar-fill blue" id="bar-sat-conf" style="width: 68%;"></div></div>
+                                <span id="val-sat-conf" class="value">68%</span>
+                            </div>
+                            <div class="conf-bar-row">
+                                <span>Drone Sortie (Tactical Detail)</span>
+                                <div class="bar-track"><div class="bar-fill cyan" id="bar-drone-conf" style="width: 94%;"></div></div>
+                                <span id="val-drone-conf" class="value">94%</span>
+                            </div>
+                        </div>
+                        <span id="aerial-conf-delta-text">+26% Fidelity Gain (Drone Confirmed)</span>
+                    </div>
+                </div>
+
+                <!-- 3. Siamese Pre/Post Building Damage Inspector -->
+                <div class="panel-card" id="card-aerial-damage">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">Pre/Post Building Damage (Siamese CNN)</h3>
+                        <span class="card-badge card-badge-purple">xBD STANDARD (100% NORMALIZED)</span>
+                    </div>
+                    <p class="panel-desc">Microsoft SiamUnet evaluated on pre/post disaster imagery pair.</p>
+
+                    <div class="siamese-viewer-strip">
+                        <div class="siamese-img-box">
+                            <span class="siamese-tag">PRE-EVENT</span>
+                            <img id="siamese-pre-img" src="" alt="Pre-Disaster Baseline" class="siamese-thumb">
+                        </div>
+                        <div class="siamese-img-box">
+                            <span class="siamese-tag post">POST-EVENT</span>
+                            <img id="siamese-post-img" src="" alt="Post-Disaster Drone" class="siamese-thumb">
+                        </div>
+                    </div>
+
+                    <!-- Damage Class Bars (Consistent 3-Column Grid) -->
+                    <div class="damage-bars-wrap">
+                        <div class="damage-bar-row dmg-bar-row">
+                            <span>Destroyed</span>
+                            <div class="bar-track"><div class="bar-fill red" id="bar-dmg-destroyed" style="width: 1.06%;"></div></div>
+                            <span id="pct-dmg-destroyed" class="value">1.1%</span>
+                        </div>
+                        <div class="damage-bar-row dmg-bar-row">
+                            <span>Major Damage</span>
+                            <div class="bar-track"><div class="bar-fill orange" id="bar-dmg-major" style="width: 1.14%;"></div></div>
+                            <span id="pct-dmg-major" class="value">1.1%</span>
+                        </div>
+                        <div class="damage-bar-row dmg-bar-row">
+                            <span>Minor Damage</span>
+                            <div class="bar-track"><div class="bar-fill yellow" id="bar-dmg-minor" style="width: 0.0%;"></div></div>
+                            <span id="pct-dmg-minor" class="value">0.0%</span>
+                        </div>
+                        <div class="damage-bar-row dmg-bar-row">
+                            <span>Intact / Safe</span>
+                            <div class="bar-track"><div class="bar-fill green" id="bar-dmg-intact" style="width: 97.8%;"></div></div>
+                            <span id="pct-dmg-intact" class="value">97.8%</span>
+                        </div>
+                    </div>
+
+                    <!-- Explicit Mathematical Normalization Card (Solves 136% Ambiguity) -->
+                    <div class="dmg-total-summary-card">
+                        <div class="dmg-summary-split">
+                            <span class="dmg-split-label">Surveyed Footprints (100.0%):</span>
+                            <span class="dmg-split-val" id="dmg-summary-mode-a">Intact: 97.8% | Damaged: 2.2%</span>
+                        </div>
+                        <div class="dmg-summary-split sub">
+                            <span class="dmg-split-label">Damaged Subset Breakdown:</span>
+                            <span class="dmg-split-val" id="dmg-summary-mode-b">Major: 51.8% | Destroyed: 48.2%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Road Accessibility Corridor Card -->
+                <div class="panel-card" id="card-aerial-roads">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">Road Accessibility Corridors</h3>
+                        <span class="card-badge card-badge-cyan">OVERPASS OSM</span>
+                    </div>
+                    <div class="road-source-indicator" id="road-source-indicator">
+                        <span>OpenStreetMap Real Vectors (Overpass Local Cache)</span>
+                    </div>
+                    <div class="road-list-container" id="aerial-road-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- 5. Live Mountain Avionics & Micro-Climate Diagnostics (Grid Card) -->
+                <div class="panel-card" id="card-aerial-avionics">
+                    <div class="panel-card-header">
+                        <h3 class="panel-title">Avionics &amp; High-Altitude Micro-Climate</h3>
+                        <span class="card-badge card-badge-green" id="aerial-flight-badge-summary">Cleared for Drone Flight</span>
+                    </div>
+                    <p class="panel-desc">Real-time Open-Meteo mountain atmospheric telemetry &amp; flight ceiling clearance.</p>
+
+                    <div class="weather-metrics-grid">
+                        <div class="weather-meter-box">
+                            <span class="w-label">WINDSPEED (120m AGL)</span>
+                            <span class="w-val" id="aerial-wind-speed">18.4 km/h</span>
+                            <span class="w-sub" id="aerial-wind-gusts">Gusts: 24.2 km/h</span>
+                        </div>
+                        <div class="weather-meter-box">
+                            <span class="w-label">CLOUD CEILING</span>
+                            <span class="w-val" id="aerial-cloud-ceiling">3,200 m</span>
+                            <span class="w-sub" id="aerial-visibility">Visibility: 9.8 km</span>
+                        </div>
+                        <div class="weather-meter-box">
+                            <span class="w-label">TEMPERATURE / DENSITY</span>
+                            <span class="w-val" id="aerial-temp">12.6 °C</span>
+                            <span class="w-sub" id="aerial-pressure">QNH: 1014 hPa</span>
+                        </div>
+                        <div class="weather-meter-box">
+                            <span class="w-label">PRECIPITATION RATE</span>
+                            <span class="w-val" id="aerial-precip">0.0 mm/h</span>
+                            <span class="w-sub">Nil detected</span>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /report-grid -->
+        </div><!-- /aerial-content-wrapper -->
+    </div><!-- /view-aerial-assessment -->
+
+    <!-- View 4: Optional Compare & Cross-Reference (Satellite vs Drone Side-by-Side) -->
+    <div id="view-compare" class="app-view-container hidden">
+        <div class="compare-view-container">
+            <div class="compare-header-strip">
+                <div>
+                    <span class="compare-badge-pill">⚖️ OPTIONAL COMPARISON &amp; CROSS-REFERENCE</span>
+                    <h2 style="font-size: 1.15rem; font-weight: 700; margin-top: 4px; color: var(--text-1);">
+                        Macro Satellite Candidate Triage vs Tactical Drone Ground-Truth Verification
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-2); margin-top: 2px;">
+                        Independent dual-tier operational workflow for DMMC, Uttarakhand. Compare wide-area candidate alerts with high-fidelity drone ground truth.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-outline" onclick="switchTopView('satellite')">
+                        🛰️ Open Satellite Module
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary-aerial" onclick="switchTopView('drone')">
+                        🚁 Open Drone Module
+                    </button>
+                </div>
+            </div>
+
+            <div class="compare-delta-banner">
+                <div class="compare-delta-stat">
+                    <span class="compare-delta-val" id="compare-stat-res">200×</span>
+                    <span class="compare-delta-lbl">Spatial Density Gain (10m → 0.05m)</span>
+                </div>
+                <div class="compare-delta-stat">
+                    <span class="compare-delta-val" id="compare-stat-delta" style="color: #34d399;">+26.0%</span>
+                    <span class="compare-delta-lbl">Confidence Fidelity Delta (Verified)</span>
+                </div>
+                <div class="compare-delta-stat">
+                    <span class="compare-delta-val" id="compare-stat-ground" style="color: #38bdf8;">60.88%</span>
+                    <span class="compare-delta-lbl">Drone-Confirmed Inundation</span>
+                </div>
+                <div class="compare-delta-stat">
+                    <span class="compare-delta-val" id="compare-stat-roads" style="color: #fbbf24;">2 Blocked</span>
+                    <span class="compare-delta-lbl">OSM Transport Corridors</span>
+                </div>
+            </div>
+
+            <div class="compare-grid">
+                <!-- Module 1: Satellite Triage (Macro) -->
+                <div class="compare-card satellite">
+                    <div class="compare-card-head">
+                        <div class="compare-card-title">
+                            <span>🛰️ Satellite Triage</span>
+                            <span class="compare-card-tag blue">STANDALONE MODULE 1</span>
+                        </div>
+                        <span style="font-family: var(--mono); font-size: 0.75rem; color: #93c5fd;">Sentinel-2 L2A (10m → 2.5m)</span>
+                    </div>
+
+                    <p style="font-size: 0.82rem; color: var(--text-2);">
+                        Wide-area synoptic monitoring across Uttarakhand. Rapidly scans river basins and mountain passes to flag candidate disaster sectors.
+                    </p>
+
+                    <div class="compare-metrics-grid">
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Target Sector</span>
+                            <span class="compare-metric-val">Chamoli / Rishi Ganga</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Macro Resolution</span>
+                            <span class="compare-metric-val blue">10.0m → 2.5m (HAT SR)</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Confidence Metric</span>
+                            <span class="compare-metric-val amber">68.0% (MC-Dropout)</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Cloud Clearance</span>
+                            <span class="compare-metric-val green">S2 L2A Masked (&lt;5% Haze)</span>
+                        </div>
+                    </div>
+
+                    <div class="compare-feature-list">
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🔍</span>
+                            <span><strong>Operational Role:</strong> "Where should DMMC look first?" — Broad candidate zone detection.</span>
+                        </div>
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🔬</span>
+                            <span><strong>Spectral Analytics:</strong> NDWI water surge (+0.42), NBR burn severity, NDVI crop damage.</span>
+                        </div>
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🛡️</span>
+                            <span><strong>Uncertainty USP:</strong> Epistemic variance heatmap flags potential hallucinated features.</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-outline" style="margin-top: auto;" onclick="switchTopView('satellite')">
+                        Launch Satellite Triage Module &rarr;
+                    </button>
+                </div>
+
+                <!-- Module 2: Drone Verification (Tactical) -->
+                <div class="compare-card drone">
+                    <div class="compare-card-head">
+                        <div class="compare-card-title">
+                            <span>🚁 Drone Verification</span>
+                            <span class="compare-card-tag red">STANDALONE MODULE 2</span>
+                        </div>
+                        <span style="font-family: var(--mono); font-size: 0.75rem; color: #fca5a5;">Tactical Sortie (0.05m GSD)</span>
+                    </div>
+
+                    <p style="font-size: 0.82rem; color: var(--text-2);">
+                        On-demand tactical sortie directly over the flagged sector. Delivers sub-decimeter ground-truth verification of roads, floodwaters, and buildings.
+                    </p>
+
+                    <div class="compare-metrics-grid">
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Sortie Ground Truth</span>
+                            <span class="compare-metric-val red">0.05m / px (5cm GSD)</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Inundation (DeepLabV3+)</span>
+                            <span class="compare-metric-val cyan">60.88% Floodwater</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Verified Confidence</span>
+                            <span class="compare-metric-val green">94.0% Ground-Truth</span>
+                        </div>
+                        <div class="compare-metric-box">
+                            <span class="compare-metric-lbl">Building Damage (SiamUnet)</span>
+                            <span class="compare-metric-val amber">11.0% Damaged (100% Norm)</span>
+                        </div>
+                    </div>
+
+                    <div class="compare-feature-list">
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🎯</span>
+                            <span><strong>Operational Role:</strong> "What is actually on the ground and can NDRF get through?"</span>
+                        </div>
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🛣️</span>
+                            <span><strong>Road Passability:</strong> Overpass OSM 2,428 vectors; Ram Jhula &amp; Virbhadra Rd blocked.</span>
+                        </div>
+                        <div class="compare-feature-item">
+                            <span class="compare-feature-icon">🏢</span>
+                            <span><strong>Dual-Mode Damage:</strong> Mode A: 89.0% Intact / 11.0% Damaged; Mode B: 17.3% Minor, 58.9% Major, 23.8% Destroyed.</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-sm btn-primary-aerial" style="margin-top: auto;" onclick="switchTopView('drone')">
+                        Launch Drone Verification Module &rarr;
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div><!-- /view-compare -->
+
     </div><!-- /dash-page-viewer -->
 
     <!-- ======== DASH PAGE 2: CONFIGURATION ======== -->
@@ -1238,63 +1904,73 @@
     })();
     </script>
 
-    <!-- Site Footer: Live Pipeline Verification & Provenance HUD -->
+    <!-- Site Footer: Live Pipeline Verification & Provenance HUD (Collapsed by default) -->
     <footer class="site-footer" id="site-footer" aria-label="Pipeline Verification and Provenance Telemetry">
-        <div class="footer-card">
-            <div class="footer-header">
-                <div class="footer-title-group">
-                    <h3 class="footer-title">Pipeline Verification</h3>
-                    <span class="footer-subtitle">Live inference telemetry, Monte-Carlo uncertainty, and paired satellite provenance</span>
+        <details class="footer-collapsible" id="details-pipeline-verification">
+            <summary class="footer-summary-bar">
+                <div class="footer-summary-title">
+                    <span class="footer-summary-icon">⚙️</span>
+                    <div>
+                        <h3 class="footer-title" style="margin:0; font-size:14px; font-weight:700;">Pipeline Verification &amp; Technical Provenance</h3>
+                        <span class="footer-subtitle" style="font-size:11px; color:var(--text-3);">Live model checkpoints, MC-Dropout uncertainty, per-pixel variance &amp; Polygon Amoy blockchain</span>
+                    </div>
                 </div>
-                <span class="card-badge card-badge-cyan">LIVE PROVENANCE</span>
-            </div>
-            <div class="verif-grid">
-                <div class="verif-tile">
-                    <div class="verif-item-title">Active Checkpoint</div>
-                    <div id="verif-checkpoint" class="verif-code-white">srmnet_x4_sentinel2.pt (4x / 2.5m GSD)</div>
+                <div class="footer-summary-actions">
+                    <span class="card-badge card-badge-cyan">PROVENANCE DETAILS</span>
+                    <span class="footer-expand-label">Show Technical Details ▼</span>
                 </div>
-                <div class="verif-tile">
-                    <div class="verif-item-title">Dropout Mode (Inference)</div>
-                    <div id="verif-dropout" class="verif-code-cyan">force_dropout=True (BN frozen, 8 passes)</div>
-                </div>
-                <div class="verif-tile">
-                    <div class="verif-item-title">Raw Per-Pixel Variance (Unrounded)</div>
-                    <div id="verif-variance" class="verif-code-green">min: 7.64e-09 | max: 3.54e-06 | mean: 6.98e-07</div>
-                </div>
-                <div class="verif-tile">
-                    <div class="verif-item-title">Array Dimensions (Genuine 4x Expansion)</div>
-                    <div id="verif-dimensions" class="verif-code-yellow">LR: 128×128 px → SR: 512×512 px (16x pixel density)</div>
-                </div>
-                <div class="verif-tile">
-                    <div class="verif-item-title">Stage 2 Preview Sharpening</div>
-                    <div id="verif-unsharp" class="verif-code-blue">Real-ESRGAN x4plus (outscale=1, tile=256)</div>
-                </div>
-                <div class="verif-tile">
-                    <div class="verif-item-title">Ground Truth HR Reference</div>
-                    <div id="verif-reference" class="verif-code-slate">data/reference_hr/punjab_agri_spot_1.5m.npy (SPOT 1.5m)</div>
-                </div>
+            </summary>
+            <div class="footer-details-body">
+                <div class="footer-card" style="margin: 0; padding: 0; background: transparent; border: none; box-shadow: none;">
+                    <div class="verif-grid">
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Active Checkpoint</div>
+                            <div id="verif-checkpoint" class="verif-code-white">srmnet_x4_sentinel2.pt (4x / 2.5m GSD)</div>
+                        </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Dropout Mode (Inference)</div>
+                            <div id="verif-dropout" class="verif-code-cyan">force_dropout=True (BN frozen, 8 passes)</div>
+                        </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Raw Per-Pixel Variance (Unrounded)</div>
+                            <div id="verif-variance" class="verif-code-green">min: 7.64e-09 | max: 3.54e-06 | mean: 6.98e-07</div>
+                        </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Array Dimensions (Genuine 4x Expansion)</div>
+                            <div id="verif-dimensions" class="verif-code-yellow">LR: 128×128 px → SR: 512×512 px (16x pixel density)</div>
+                        </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Stage 2 Preview Sharpening</div>
+                            <div id="verif-unsharp" class="verif-code-blue">Real-ESRGAN x4plus (outscale=1, tile=256)</div>
+                        </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Ground Truth HR Reference</div>
+                            <div id="verif-reference" class="verif-code-slate">data/reference_hr/punjab_agri_spot_1.5m.npy (SPOT 1.5m)</div>
+                        </div>
 
-                <div class="verif-tile">
-                    <div class="verif-item-title">Temporal Fusion Mode</div>
-                    <div id="verif-temporal" class="verif-code-cyan">Single-Pass (Default)</div>
-                </div>
-                <div class="verif-tile verif-tile-purple">
-                    <div class="verif-item-title">Polygon Amoy Blockchain Provenance</div>
-                    <div id="verif-blockchain-status" class="verif-code-purple">v1 (Verified) • SHA-256 Anchored</div>
-                </div>
-            </div>
+                        <div class="verif-tile">
+                            <div class="verif-item-title">Temporal Fusion Mode</div>
+                            <div id="verif-temporal" class="verif-code-cyan">Single-Pass (Default)</div>
+                        </div>
+                        <div class="verif-tile verif-tile-purple">
+                            <div class="verif-item-title">Polygon Amoy Blockchain Provenance</div>
+                            <div id="verif-blockchain-status" class="verif-code-purple">v1 (Verified) • SHA-256 Anchored</div>
+                        </div>
+                    </div>
 
-            <!-- Footer Blockchain Action Bar -->
-            <div class="footer-blockchain-strip">
-                <div class="bc-footer-left">
-                    <span class="chain-dot-purple"></span>
-                    <span class="bc-footer-text"><strong>On-Chain Provenance Chain:</strong> Sub-11cm Geo-tagging (lat/lon &amp; bbox scaled 1e6) + SHA-256 linked to Polygon Amoy Testnet (Chain ID 80002)</span>
+                    <!-- Footer Blockchain Action Bar -->
+                    <div class="footer-blockchain-strip">
+                        <div class="bc-footer-left">
+                            <span class="chain-dot-purple"></span>
+                            <span class="bc-footer-text"><strong>On-Chain Provenance Chain:</strong> Sub-11cm Geo-tagging (lat/lon &amp; bbox scaled 1e6) + SHA-256 linked to Polygon Amoy Testnet (Chain ID 80002)</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-blockchain" id="btn-footer-open-blockchain">
+                            Inspect Version History Chain (v1 ➔ v2 ➔ v3)
+                        </button>
+                    </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-blockchain" id="btn-footer-open-blockchain">
-                    Inspect Version History Chain (v1 ➔ v2 ➔ v3)
-                </button>
             </div>
-        </div>
+        </details>
     </footer>
 
     <!-- Blockchain Provenance & Version Chain Modal -->
@@ -1378,6 +2054,33 @@
             </div>
         </div>
     </div><!-- /modal-blockchain -->
+
+    <!-- DMMC Incident Report Modal -->
+    <div class="modal-overlay hidden" id="modal-aerial-report" role="dialog" aria-modal="true" aria-labelledby="modal-report-title">
+        <div class="modal-card modal-card-large" style="max-width: 900px; width: 92vw;">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-chain-tag">
+                        <span class="chain-dot-purple" style="background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
+                        DMMC Operational Incident Action Directive
+                    </div>
+                    <h2 class="modal-title" id="modal-report-title">Disaster Action Plan &amp; Tactical Field Report</h2>
+                    <p class="modal-subtitle">Auto-generated plain-language tactical report for NDRF, SDRF, and DMMC incident commanders</p>
+                </div>
+                <button type="button" class="btn-modal-close" onclick="window.closeDMMCReportModal()" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 14px 18px; max-height: 72vh; overflow-y: auto;">
+                <iframe id="report-iframe" style="width: 100%; height: 560px; border: 1px solid var(--border); border-radius: 8px; background: #ffffff;"></iframe>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <a id="btn-download-report-file" href="/api/aerial/report/download?zone_id=chamoli_rishi_ganga" class="btn btn-secondary" download>📥 Download HTML Report</a>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-primary" onclick="window.printReportIframe()">🖨️ Print / Save as PDF</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.closeDMMCReportModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div><!-- /modal-aerial-report -->
 
     <!-- Leaflet & Leaflet.draw JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

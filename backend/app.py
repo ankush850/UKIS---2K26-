@@ -10,12 +10,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 from backend.api.routes import router as api_router
+from backend.aerial.routes import router as aerial_router
 from backend.config import BASE_DIR
 
 app = FastAPI(
-    title="UKIS-2026 - Super Resolution Mapping (SRM)",
-    description="Sentinel-2 10m to <4m Super Resolution with Hallucination-Aware Uncertainty USP",
-    version="1.0.0"
+    title="UKIS-2026 - Netra & Netra Aerial Disaster Assessment",
+    description="Sentinel-2 Super Resolution + Drone-Based Disaster Assessment (DMMC, Uttarakhand)",
+    version="2.0.0"
 )
 
 # Enable CORS for local/remote development
@@ -29,6 +30,7 @@ app.add_middleware(
 
 # Register API endpoints
 app.include_router(api_router)
+app.include_router(aerial_router)
 
 # Mount frontend static directory
 frontend_dir = BASE_DIR / "frontend"
