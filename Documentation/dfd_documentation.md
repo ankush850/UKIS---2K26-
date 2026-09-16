@@ -118,6 +118,55 @@ flowchart TD
 ```
 
 ## Summary of the DFD Levels
-*   **Level 0** shows that a user simply gives a location (Bounding Box) and receives a high-resolution map and trust metrics in return, while the system quietly handles the satellite communication in the background.
+*   **Level 0** shows that a user simply gives a location (Bounding Box or Drone Upload) and receives high-resolution intelligence, trust metrics, and incident briefings in return.
 *   **Level 1** explains that the backend maintains a local database (`D1` Cache) to save bandwidth and gracefully separates data fetching from machine learning processing.
-*   **Level 2** is the most complex, illustrating the mathematical operations where a single satellite tile is sliced into tensor patches (`P3.1`), pushed through active PyTorch Dropout layers multiple times (`P3.2`), and finally audited by the SAM (`P4.2`) and Cycle Consistency (`P4.1`) modules to detect hallucinations.
+*   **Level 2** illustrates the mathematical operations where a single satellite tile is sliced into tensor patches (`P3.1`), pushed through active PyTorch Dropout layers multiple times (`P3.2`), and finally audited by the SAM (`P4.2`) and Cycle Consistency (`P4.1`) modules to detect hallucinations.
+
+---
+
+## 4. Level 3 DFD: Tactical Drone Tri-Model Inspection Pipeline
+Level 3 illustrates the Micro Tier (Netra Aerial) data flow when evaluating tactical UAV sorties and field imagery:
+
+```mermaid
+flowchart TD
+    %% Inputs
+    DroneImg[Raw Tactical Drone Photo / Sortie]
+    
+    %% Processes
+    EXIF[6.1 EXIF GPS Extraction & Himalayan Domain Guard]
+    M_FNet[6.2 FloodNet DeepLabV3+ Nadir Flood Model]
+    M_TLS[6.3 TransLandSeg SAM ViT-L Bijie Landslide Model]
+    M_SF[6.4 SegFormer B0 ADE20K Water vs Sky Model]
+    
+    Router{6.5 Intelligent Hazard Consensus & Discrepancy Router}
+    
+    OSM[6.6 Overpass OSM Highway Passability Buffer Intersection]
+    Siam[6.7 Microsoft SiamUnet xBD Pre/Post Building Damage]
+    
+    Severity[6.8 DMMC Calibrated Severity Scorer 0-100]
+    Briefing[6.9 Automated Incident Briefing Generator HTML/PDF]
+    
+    %% Flows
+    DroneImg --> EXIF
+    DroneImg --> M_FNet
+    DroneImg --> M_TLS
+    DroneImg --> M_SF
+    
+    M_FNet -- "Flooded Roads/Bldgs %" --> Router
+    M_TLS -- "Active Landslide Scar %" --> Router
+    M_SF -- "Water % vs Sky % (Softmax Conf)" --> Router
+    
+    Router -- "Dominant Hazard & Consensus Masks" --> Severity
+    Router -- "Discrepancy Note (models_disagree)" --> Briefing
+    
+    EXIF -- "Lat / Lon Coordinates" --> OSM
+    M_FNet & M_TLS -- "Hazard Polygons" --> OSM
+    OSM -- "Blocked Corridors & Chokepoints" --> Severity
+    
+    DroneImg -- "Paired Post-Image" --> Siam
+    Siam -- "Normalized Damage Percentages" --> Severity
+    
+    Severity -- "Severity Score & Priority Directives" --> Briefing
+    Briefing --> User((Emergency Incident Commander))
+```
+

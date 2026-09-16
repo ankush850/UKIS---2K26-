@@ -1,98 +1,80 @@
-# System Architecture: UKIS-2026 (GEO-SRM)
+# System Architecture: NETRA-D (UKIS-2026)
+## Dual-Tier Disaster Intelligence & Infrastructure Assessment Platform
 
-This document outlines the high-level architecture, data flow, and modular components of the UKIS-2026 Super Resolution Mapping (SRM) system. 
+This document outlines the high-level architecture, multi-tier data flow, and modular components of the NETRA-D system engineered for the **Disaster Mitigation and Management Centre (DMMC), Uttarakhand** under UKIS-2026 Problem P-008.
 
-## 1. High-Level Data Flow Architecture
+---
 
-The following diagram illustrates how user requests move from the interactive map to the cloud satellite API, through the PyTorch super-resolution models, and back to the user interface.
+## 1. High-Level Multi-Tier Architecture
+
+NETRA-D connects wide-area satellite monitoring with localized high-resolution drone inspections:
 
 ```mermaid
 flowchart TD
-    subgraph Frontend [Frontend Client]
-        UI[Leaflet Map / Custom BBox] --> FetchReq(Tile Request)
-        FetchReq --> SR_Command(Run Super Resolution)
-        Render[OpenSeadragon Deep-Zoom Viewer]
+    subgraph SATELLITE_TIER["🛰️ Macro Tier: Satellite Wide-Area Triage"]
+        S1[Copernicus CDSE Sentinel-2 Ingestion] --> S2[ESA SCL Multi-Spectral Cloud Shield]
+        S2 --> S3[HAT 4x Super-Resolution 10m -> 2.5m]
+        S3 --> S4[MC-Dropout Epistemic Uncertainty Engine]
+        S3 --> S5[Multi-Spectral Indices: NDVI / NDWI / NBR / NDBI]
+        S4 & S5 --> S6[Polygon Amoy Blockchain Provenance Manager]
+        S6 --> S7[Macro Triage Viewport & Confidence Heatmap]
     end
 
-    subgraph Backend_API [FastAPI Backend Layer]
-        Router[API Router]
-        Cache[(Local Disk Cache)]
+    subgraph DRONE_TIER["🚁 Micro Tier: Tactical Drone Assessment"]
+        D1[UAV Field Photo / Live Sortie] --> D2[EXIF GPS Extraction & Himalayan Domain Guard]
+        D1 --> D3[60-Frame Live HUD Video Simulator]
+        
+        D2 --> M1[FloodNet DeepLabV3+<br/>Nadir Flood & Inundation]
+        D2 --> M2[TransLandSeg SAM ViT-L<br/>Dedicated Bijie Landslide Scars]
+        D2 --> M3[SegFormer B0 ADE20K<br/>Water vs Sky Disambiguation]
+        
+        M1 & M2 & M3 --> M4{Intelligent Multi-Model<br/>Hazard Routing & Consensus}
+        
+        D2 --> P1[Microsoft SiamUnet<br/>xBD Pre/Post Building Damage]
+        D2 --> P2[Overpass OSM Highway Network<br/>Vector Road Passability Engine]
+        
+        M4 & P1 & P2 --> E1[Calibrated DMMC Multi-Hazard Severity Engine]
+        E1 --> E2[Automated DMMC Incident Briefing Report PDF/HTML]
+        E1 --> E3[GeoJSON Tactical Hazard Vector Export]
     end
 
-    subgraph Data_Ingestion [Data Ingestion Layer]
-        CDSE(Copernicus CDSE API)
-        CloudMask[Multi-Spectral Optical Cloud Masking]
-        SPOT[(SPOT 1.5m Ground Truth)]
+    subgraph FUSION_VIEW["⚖️ Synchronized Cross-Reference Viewport"]
+        S7 -. Macro Alert vs Micro Ground Truth .-> SYNC[Synchronized Leaflet Tactical Map]
+        E1 -. High-Resolution Verification Delta .-> SYNC
     end
-
-    subgraph Deep_Learning [AI / ML Engine]
-        Tiler[Patch Tiler & Seam Blender]
-        Model[PyTorch Model: SRMNet/SwinIR]
-        MCDropout(N-Pass MC-Dropout)
-    end
-
-    subgraph USP_Layer [Scientific Validation USP]
-        SAM(Spectral Angle Mapper)
-        CycleCheck(Cycle Consistency MAE)
-        FusedConfidence{Fused Confidence Heatmap}
-    end
-
-    subgraph Downstream [Analytics]
-        Infra[Infrastructure Extraction: Roads/Bridges/Bldgs]
-    end
-
-    %% Flow
-    FetchReq --> Router
-    Router <--> Cache
-    Router --> CDSE
-    CDSE --> CloudMask
-    CloudMask --> Router
-
-    SR_Command --> Tiler
-    Tiler --> Model
-    Model <--> MCDropout
-    MCDropout --> SAM
-    MCDropout --> CycleCheck
-    SAM --> FusedConfidence
-    CycleCheck --> FusedConfidence
-    Model --> Infra
-    FusedConfidence --> Infra
-    
-    Model --> Render
-    FusedConfidence --> Render
-    Infra --> Render
 ```
 
 ---
 
 ## 2. Component Breakdown
 
-### 2.1. Client & Presentation Layer (Frontend)
-The frontend is a lightweight, zero-build vanilla JS application that focuses on rendering massive geospatial images efficiently.
-*   **Bounding Box Selector:** Uses `Leaflet.js` and `Leaflet.draw` to allow users to intuitively select any region on the globe.
-*   **Synchronized Viewports:** Uses `OpenSeadragon` to render 16-bit/32-bit images as Deep Zoom pyramids. The 10m Sentinel-2 viewport and 2.5m SRM viewport are programmatically linked so that panning/zooming one mirrors exactly in the other.
-*   **Real-time HUDs:** Custom HTML/CSS overlays that display confidence scores, validation metrics, and infrastructure counts fetched asynchronously from the FastAPI backend.
+### 2.1. Presentation Layer (Frontend)
+- **Zero-Build Architecture:** Pure Vanilla HTML5, CSS3, and modern ES6+ JavaScript. No bulky build steps or external bundler dependencies.
+- **Aerospace Defense Design System:** Sleek dark-mode aesthetic with glassmorphic cards, telemetry readouts, status badges, and animated HUD overlays.
+- **Dual Synchronized Viewports:** Uses Leaflet.js with linked pan/zoom controllers to cross-reference satellite wide-area heatmaps against sub-decimeter tactical drone orthomosaics.
+- **Multi-Prefix Real-Time Sliders:** Interactive controls for TransLandSeg thresholding (`tls`), SegFormer confidence thresholding (`sf`), and FloodNet sensitivity (`fnet`).
 
 ### 2.2. API & Orchestration Layer (Backend)
-Built on `FastAPI` to handle non-blocking asynchronous calls.
-*   **Stateful Session Management:** The backend holds the `current_session` in memory, storing the active Low-Resolution (LR) matrix, High-Resolution (HR) reference, and Super-Resolved (SR) outputs to prevent redundant computations.
-*   **Caching Strategy:** To combat Copernicus CDSE rate-limits and ensure a smooth hackathon demonstration, tiles fetched via `/api/fetch-tile` are cached to `cache/tiles/` locally. Subsequent clicks on the same preset return in sub-100ms.
+- **FastAPI Core (`backend/app.py`):** Asynchronous ASGI server utilizing Uvicorn for sub-millisecond route dispatching and non-blocking I/O.
+- **Stateful In-Memory Session Storage:** Caches active Low-Resolution (LR) and High-Resolution (HR) tensors to avoid redundant model re-initialization during repeated user queries.
+- **Multi-Model Concurrency:** Asynchronously routes custom drone inspection requests through all three neural segmentation backbones in parallel.
 
-### 2.3. Data Ingestion & Fallback Layer
-*   **Copernicus Client (`copernicus_client.py`):** Negotiates OAuth2 tokens and fetches real 10m Sentinel-2 L2A Level imagery.
-*   **Multi-Temporal Fusion:** Rather than relying on a single image that may have cloud cover, the system can pull 3 distinct temporal passes and apply a pixel-wise median filter to generate a highly clean input tensor.
-*   **Ground Truth Pipeline:** Automatically searches local directories for paired `SPOT 6/7 1.5m` reference imagery corresponding to the drawn Bounding Box for true scientific validation.
+### 2.3. Macro Tier: Satellite Processing Engine
+- **Copernicus Ingestion Client (`backend/ingestion/copernicus_client.py`):** Negotiates OAuth2 credentials with Copernicus Data Space Ecosystem (CDSE) to fetch live Bottom-Of-Atmosphere Level-2A granules.
+- **Patch Tiler & Seam Blender (`backend/models/sr_engine.py`):** Slices large multi-band satellite rasters into $64 \times 64$ patches with 16-pixel overlapping boundaries, applying a 2D cosine reconstruction window to eliminate boundary stitch seams.
+- **HAT Super-Resolution Engine:** Upsamples 10m bands to 2.5m GSD ($16\times$ pixel density increase) using Hybrid Attention Transformers trained on paired Sentinel-2/SPOT 6/7 scenes.
+- **Hallucination-Aware Uncertainty Pipeline (`backend/usp/`):** Runs $N=8$ stochastic Monte-Carlo Dropout passes to compute epistemic parameter variance $\boldsymbol{\sigma}^2(x, y)$, combined with low-frequency cycle consistency and SAM spectral angle checks.
 
-### 2.4. Deep Learning Super-Resolution Engine
-*   **Patch-Tiled Inference:** Satellite images (e.g., 512x512) are too heavy to process in one pass on lower-end GPUs. The `Tiler` slices the image into 64x64 patches with a 16px overlap.
-*   **2D Cosine Blending:** When reconstructing the super-resolved patches, a 2D cosine window is applied to the overlapping edges to completely eliminate grid artifacts (seam lines).
-*   **Monte-Carlo Dropout Engine:** During inference, Dropout layers remain active (`force_dropout=True`). The engine runs $N$ forward passes to calculate per-pixel epistemic variance (Uncertainty).
+### 2.4. Micro Tier: Tactical Drone Intelligence Engine
+- **Tri-Model Hazard Segmentation Suite (`backend/aerial/`):**
+  1. `segmentation.py`: FloodNet DeepLabV3+ for nadir floodwater and submerged infrastructure.
+  2. `landslide_segmentation.py`: TransLandSeg (SAM ViT-L Bijie model) for dedicated active landslide scar and mudflow segmentation.
+  3. `water_detection_segformer.py`: SegFormer B0 (ADE20K) for scene-level water/sea/river/lake segmentation with explicit sky class filtering.
+- **Intelligent Consensus Router (`backend/aerial/custom_inspection.py`):** Compares outputs between FloodNet, TransLandSeg, and SegFormer. Flags discrepancies (`models_disagree`) when oblique sky horizons cause false positive floods in FloodNet, suppressing the false flag and promoting SegFormer's sky classification.
+- **Building Damage Engine (`backend/aerial/damage_assessment.py`):** Microsoft SiamUnet Siamese CNN classifying paired pre- and post-disaster buildings into Destroyed, Major Damage, Minor Damage, and Intact categories (strictly normalized to $100.0\%$).
+- **Road Passability Engine (`backend/aerial/road_accessibility.py`):** Direct Overpass OSM query engine calculating polygon intersections between active disaster zones and Himalayan highway vectors (NH-7, Badrinath, Kedarnath corridors).
+- **Simulated Live Drone HUD Sortie Engine (`backend/aerial/live_stream.py`):** 60-frame Ken Burns trajectory engine streaming WebSocket video with per-frame PyTorch neural inference and HUD overlays.
 
-### 2.5. USP: Hallucination-Aware Uncertainty Pipeline
-The defining scientific architecture of this project. Standard generative models (like GANs/Diffusion) invent textures. This pipeline acts as a mathematical auditor:
-*   **Spectral Consistency (SAM):** Computes the N-dimensional spectral angle between the original 10m bands and the generated 2.5m bands to ensure radiometric integrity.
-*   **Cycle Consistency:** Downscales the 2.5m image back to 10m using bicubic interpolation and compares it to the original Sentinel-2 10m image. Any large divergence indicates a model hallucination.
-*   **Heatmap Fusion:** These penalties are mathematically fused into a 2D confidence array (0.0 to 1.0) and served to the frontend as a visual heatmap overlay.
-
-### 2.6. Infrastructure Extraction
-*   **Detector Module:** Runs classic computer vision and thresholding operations on the Super-Resolved array (alongside the Confidence Map) to extract structural footprints (roads, bridges, buildings) and exports them natively as `GeoJSON` topology.
+### 2.5. Blockchain Provenance Layer (NETRA)
+- **Polygon Amoy Smart Contract (`contracts/TileProvenance.sol`):** Anchors processed rasters with SHA-256 digests, integer-scaled sub-11cm geographic coordinates, model version hashes, and block timestamps.
+- **Local Ledger Fallback (`backend/blockchain/provenance_manager.py`):** Seamless local JSON audit log maintaining transactional continuity during temporary RPC drops or network offline conditions.
