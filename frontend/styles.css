@@ -5187,3 +5187,517 @@ nav.dash-tabs button.active::after {
     background: linear-gradient(135deg, #0369a1, #0284c7) !important;
     box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5) !important;
 }
+
+/* ==========================================================================
+   AI Landslide Detection Comparison Component (Refined Dark + Teal Theme)
+   ========================================================================== */
+
+.landslide-cmp-container {
+    background: #080d16;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: var(--radius-sm, 8px);
+    padding: 14px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(6, 182, 212, 0.08);
+    color: #e2e8f0;
+    margin: 10px 0;
+    box-sizing: border-box;
+}
+
+.cmp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cmp-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cmp-live-indicator {
+    width: 8px;
+    height: 8px;
+    background: #06b6d4;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #06b6d4;
+    animation: cmpPulse 2s infinite ease-in-out;
+}
+
+@keyframes cmpPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.cmp-title {
+    margin: 0;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.cmp-badge-teal {
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--mono, monospace);
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.cmp-badge-amber {
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--mono, monospace);
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.cmp-live-indicator.amber {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+}
+
+.landslide-cmp-container.amber {
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(245, 158, 11, 0.1);
+}
+
+.pill-amber {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+}
+
+.cmp-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Opacity Slider in Header */
+.cmp-opacity-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.6);
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cmp-opacity-slider {
+    width: 70px;
+    height: 4px;
+    cursor: pointer;
+    accent-color: #06b6d4;
+}
+
+.cmp-opacity-num {
+    font-family: var(--mono, monospace);
+    color: #38bdf8;
+    font-weight: 600;
+    min-width: 28px;
+}
+
+/* View Mode Buttons */
+.cmp-btn-group {
+    display: inline-flex;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.cmp-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cmp-mode-btn:hover {
+    color: #38bdf8;
+}
+
+.cmp-mode-btn.active {
+    background: rgba(6, 182, 212, 0.2);
+    color: #38bdf8;
+    font-weight: 700;
+    border-color: rgba(6, 182, 212, 0.45);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+}
+
+/* ================= 1. Side-by-Side 2-Column Grid ================= */
+.cmp-grid-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 680px) {
+    .cmp-grid-view {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cmp-card {
+    background: #0c1322;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 7px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cmp-card:hover {
+    border-color: rgba(6, 182, 212, 0.45);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+.cmp-card-tag {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    font-family: var(--mono, monospace);
+    letter-spacing: 0.5px;
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cmp-tag-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cmp-card-tag.tag-raw {
+    color: #94a3b8;
+}
+
+.cmp-card-tag.tag-raw .tag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.cmp-card-tag.tag-ml {
+    color: #38bdf8;
+}
+
+.cmp-card-tag.tag-ml .tag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #06b6d4;
+    box-shadow: 0 0 6px #06b6d4;
+}
+
+.cmp-tag-pill {
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.pill-gray {
+    background: rgba(148, 163, 184, 0.15);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #cbd5e1;
+}
+
+.pill-cyan {
+    background: rgba(6, 182, 212, 0.2);
+    border: 1px solid rgba(6, 182, 212, 0.45);
+    color: #38bdf8;
+}
+
+/* Image Frames with Strict 16:9 Aspect Ratio */
+.cmp-media-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #03060c;
+    overflow: hidden;
+}
+
+.cmp-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* Semi-Transparent Mask Layer */
+.cmp-img-mask-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+}
+
+.cmp-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    background: #0b111e;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: var(--mono, monospace);
+}
+
+.cmp-stat-badge {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+.cmp-stat-badge.amber {
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+}
+
+.cmp-stat-badge.cyan {
+    background: rgba(6, 182, 212, 0.18);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    color: #38bdf8;
+}
+
+/* ================= 2. Before/After Split Slider View ================= */
+.cmp-slider-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slider-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 7px;
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    background: #03060c;
+    cursor: ew-resize;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.slider-img-under-base {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.slider-img-under-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.slider-overlay-clip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 2;
+    border-right: 2px solid #38bdf8;
+    box-shadow: 3px 0 16px rgba(6, 182, 212, 0.5);
+}
+
+.slider-img-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+}
+
+.slider-label {
+    position: absolute;
+    top: 10px;
+    padding: 3px 8px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--mono, monospace);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 5;
+    letter-spacing: 0.5px;
+}
+
+.slider-label.label-left {
+    left: 10px;
+    background: rgba(15, 23, 42, 0.9);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.slider-label.label-right {
+    right: 10px;
+    background: rgba(8, 51, 68, 0.9);
+    color: #38bdf8;
+    border: 1px solid rgba(6, 182, 212, 0.5);
+}
+
+.slider-divider {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    bottom: 0;
+    width: 0;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.slider-handle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 36px;
+    background: #083344;
+    border: 2px solid #38bdf8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.65), inset 0 0 8px rgba(6, 182, 212, 0.3);
+}
+
+.slider-caption {
+    font-size: 0.7rem;
+    color: #64748b;
+    text-align: center;
+    font-style: italic;
+}
+
+/* ================= Refined Legend Badges (No Collisions!) ================= */
+.cmp-legend {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+    padding-top: 10px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.cmp-legend-title {
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-family: var(--mono, monospace);
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+}
+
+.cmp-legend-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    height: auto !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.cmp-legend-badge.badge-debris {
+    background: rgba(180, 83, 9, 0.22) !important;
+    border: 1px solid rgba(245, 158, 11, 0.45) !important;
+    color: #fcd34d !important;
+}
+
+.cmp-legend-badge.badge-flood {
+    background: rgba(6, 182, 212, 0.2) !important;
+    border: 1px solid rgba(6, 182, 212, 0.45) !important;
+    color: #67e8f9 !important;
+}
+
+.cmp-legend-badge.badge-damaged {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border: 1px solid rgba(239, 68, 68, 0.45) !important;
+    color: #fca5a5 !important;
+}
+
+.cmp-legend-badge.badge-stable {
+    background: rgba(34, 197, 94, 0.16) !important;
+    border: 1px solid rgba(34, 197, 94, 0.4) !important;
+    color: #86efac !important;
+}
+
+.cmp-badge-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+}
+
+.badge-debris .cmp-badge-dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.badge-flood .cmp-badge-dot { background: #06b6d4; box-shadow: 0 0 6px #06b6d4; }
+.badge-damaged .cmp-badge-dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.badge-stable .cmp-badge-dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }

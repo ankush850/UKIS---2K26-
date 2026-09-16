@@ -229,17 +229,59 @@ graph TD
 
 ---
 
-## 7. Model Selection & Decision Guide for Judges and Users
+## 7. Tactical Aerial Drone Models: Benchmark & Selection Guide
+
+When macro-scale satellite uncertainty triggers or high-resolution localized inspection is required, NETRA-D deploys the **Tactical Aerial Drone Module** (`backend/aerial/`).
+
+### 7.1. Master Drone Model Comparative Matrix
+
+| Model Architecture | Parameters | Input Resolution / GSD | Specialized Operational Domain | Benchmark Verification Metric |
+| :--- | :---: | :---: | :--- | :--- |
+| **TransLandSeg (SAM ViT-L)** | **304.0 M** | $512 \times 512$ (5cm–20cm GSD) | Mountain landslides, mudflows, debris fans | **93.1% Confidence** on Wayanad 500m mudflow scar |
+| **SegFormer B0 (ADE20K)** | **3.71 M** | $512 \times 512$ (Any perspective) | Scene parsing, water vs sky horizon disambiguation | **99.5% Sky Confidence**; eliminates false flood alarms |
+| **FloodNet DeepLabV3+** | **26.70 M** | $512 \times 512$ (5cm–10cm Nadir) | Nadir floodwater, flooded roads, flooded buildings | **73.2% mIoU** on FloodNet nadir benchmark |
+| **Microsoft SiamUnet** | **7.80 M** | $2 \times 512 \times 512$ (Pre/Post Pair)| Pre/post building damage classification (xBD standard) | **80.6% Composite F1** (Destroyed, Major, Minor, Intact) |
+
+---
+
+### 7.2. Multi-Hazard Decision Flowchart for Drone Sorties
+
+```mermaid
+graph TD
+    A["Tactical Drone Sortie Imagery Ingested"] --> B{"Is it a Mountain Valley / Landslide Risk Sector?"}
+    
+    B -->|Yes| C["Deploy TransLandSeg (SAM ViT-L Bijie Engine)"]
+    B -->|No: Plains / River Basin| D["Deploy FloodNet & SegFormer Dual-Water Pipeline"]
+    
+    C --> E{"Did TransLandSeg detect Landslide Scar >= 4.0%?"}
+    E -->|Yes| F["Trigger Landslide Mode: Severity 88/100, Immediate SAR Alert"]
+    E -->|No| G["Check FloodNet for Riparian Inundation"]
+    
+    D --> H{"Does the image contain an Oblique Perspective with Sky?"}
+    H -->|Yes| I["Audit with SegFormer B0 Softmax Sky Detector (Class 2)"]
+    H -->|No: Nadir 90°| J["Run FloodNet & Overpass OSM Road Blockage Engine"]
+    
+    I --> K{"Did FloodNet trigger false water on sky?"}
+    K -->|Yes| L["Consensus Discrepancy: Suppress False Flood -> Mark Stable"]
+    K -->|No| M["Confirm Genuine Inundation Reading"]
+```
+
+---
+
+## 8. Model Selection & Decision Guide for Judges and Users
 
 | Deployment Scenario | Recommended Model | Rationale |
 | :--- | :---: | :--- |
 | **High-Precision Cadastral & Infrastructure Demarcation** | **HAT** | Lowest spectral distortion (SAM $5.67^\circ$), highest structural fidelity (SSIM $0.1667$), razor-sharp road and building borders. |
 | **Interactive Web UI & Real-Time Exploration** | **SRM-Net** | Over $2\times$ faster deterministic inference ($472\text{ ms}$), $4.3\times$ faster MC-Dropout ensemble ($3.7\text{ s}$), and high variance dispersion. |
 | **Aesthetic / Media Presentation & Hallucination Auditing** | **Real-ESRGAN** | Maximum perceptual contrast baseline; used in conjunction with the trust heatmap to audit generative hallucinations. |
-| **Unpaired Remote Sensing AOIs (No Reference)** | **HAT + `pyiqa` NIQE** | Blind quality scoring evaluates natural scene statistics directly on output without requiring false reference fallbacks. |
+| **Mountain Slope Failures & Cloudburst Mudslides** | **TransLandSeg** | Solves FloodNet's missing bare-soil class; detects active landslide scars with 93%+ confidence. |
+| **Oblique Aerial Sorties & Horizon Views** | **SegFormer B0** | 150-class scene parsing eliminates oblique sky-as-water false positives with 99.5% confidence. |
+| **Nadir Flash Flood Road/Building Inundation** | **FloodNet DeepLabV3+** | High-resolution 4-class tactical flood segmentation with strict 100% mathematical normalization. |
+| **Post-Disaster Structural Damage Audits** | **Microsoft SiamUnet** | International xBD 4-tier damage classification with pre/post structural integrity scoring. |
 | **Low-Power / Mobile Field Survey Kits** | **CARN / SRM-Net** | Compact sub-1M parameter architectures with $<200\text{ MB}$ memory footprint. |
-| **Cloudy / Monsoon Scene Acquisition** | **Any Model + Physical Cloud Detector** | Cloud masking automatically overrides synthetic generation, guarantees $0.0\%$ confidence under clouds, and triggers alternative date recommendations. |
+| **Cloudy / Monsoon Scene Acquisition** | **Any Model + Optical Cloud Shield** | Cloud masking automatically overrides synthetic generation, guarantees $0.0\%$ confidence under clouds. |
 
 ---
 
-*Authored for the Smart India Hackathon (UKIS-2026) — Super-Resolution Mapping for Sentinel-2 Imagery.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Problem P-008: AI-Powered Multi-Tier Disaster Assessment & Infrastructure Monitoring.*

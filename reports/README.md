@@ -31,6 +31,16 @@ This `reports/` directory contains dedicated, exhaustive technical evaluation do
 | **LDSR-S2 (Latent Diffusion Model)** | Denoising Latent Diffusion (UNet) | [`weights/opensr-ldsrs2_v1_0_0.ckpt`](../../weights/opensr-ldsrs2_v1_0_0.ckpt) | **~1,130 MB** | **Generative Diffusion Research Baseline** | [📖 LDSR-S2 Model Report](ldsr_s2/MODEL_REPORT.md) |
 | **SwinIR (Shifted Window Transformer)**| Swin Transformer (RSTB + SW-MSA) | [`weights/swinir_x4_satellite.pt`](../../weights/swinir_x4_satellite.pt) | **11.90 M** | **Deep Attention Comparative Benchmark** | [📖 SwinIR Model Report](swinir/MODEL_REPORT.md) |
 
+### Tactical Aerial Drone Models (Micro Tier — Netra-D):
+
+| Model Architecture | Category | Checkpoint Path | Parameters | Primary Role | Technical Report Link |
+| :--- | :--- | :--- | :---: | :--- | :---: |
+| **TransLandSeg (SAM ViT-L)** | Vision Transformer Large (ViT-L) | [`checkpoints/Bijie.pth.tar`](../../checkpoints/Bijie.pth.tar) | **304.0 M** | **Dedicated Landslide Scar & Debris Flow Engine** | [📖 TransLandSeg Report](translandseg/MODEL_REPORT.md) |
+| **SegFormer B0 (ADE20K)** | Hierarchical Vision Transformer | Pretrained `nvidia/segformer-b0-finetuned-ade-512-512` | **3.71 M** | **Water vs Sky Horizon Disambiguation Engine** | [📖 SegFormer Report](segformer/MODEL_REPORT.md) |
+| **FloodNet DeepLabV3+** | CNN + Atrous Spatial Pyramid Pooling | [`backend/aerial/checkpoints/floodnet_deeplabv3plus.pth`](../../backend/aerial/) | **26.70 M** | **Tactical Nadir Flood Inundation Engine** | [📖 FloodNet Report](floodnet/MODEL_REPORT.md) |
+| **Microsoft SiamUnet** | Siamese CNN + Feature Differencing | [`backend/aerial/damage_assessment.py`](../../backend/aerial/) | **7.80 M** | **Pre/Post Disaster Building Damage (xBD Standard)** | [📖 SiamUnet Report](siamunet/MODEL_REPORT.md) |
+
+
 ---
 
 ## Quantitative Benchmark Matrix (SPOT 6/7 1.5m Ground Truth)
@@ -80,17 +90,25 @@ graph TD
    Real-ESRGAN is a powerful perceptual upscaler. However, because it was trained with an unconstrained adversarial loss, **it invents micro-structures that do not physically exist on the ground** (paved roads in open soil, phantom rooftop geometries). It serves as the empirical proof of *why* unconstrained generative AI cannot be blindly trusted in Earth Observation, and why our **Hallucination-Aware Uncertainty USP** is indispensable.
 5. **Why LDSR-S2 as the Diffusion Baseline:**  
    Latent diffusion models represent the bleeding-edge of generative super-resolution. OpenSR's LDSR-S2 enables direct comparison between attention-based regression (HAT), residual CNNs (SRM-Net), and stochastic iterative diffusion.
+6. **Why TransLandSeg for Mountain Landslides:**  
+   Standard flood models have no bare-soil landslide class. TransLandSeg fine-tunes SAM's 304M-parameter ViT-L backbone on the mountainous Bijie Landslide Dataset, isolating active mudflows and slope failures with 93%+ confidence.
+7. **Why SegFormer B0 for Sky Horizon Disambiguation:**  
+   FloodNet was trained strictly on top-down nadir drone imagery and misclassifies blue sky as 66% floodwater. SegFormer's ADE20K pretraining explicitly separates `sky` from `water` with per-pixel softmax confidence, suppressing false flood alarms.
+8. **Why FloodNet DeepLabV3+ for Nadir Inundation:**  
+   Processes 5cm–10cm nadir drone orthomosaics into 4 tactical disaster classes (flooded-roads, flooded-buildings, water, background) with strict 100% mathematical normalization.
+9. **Why Microsoft SiamUnet for Pre/Post Damage:**  
+   Uses a weight-shared Siamese CNN comparing pre- and post-disaster paired imagery adhering to the global xBD/HAZUS 4-tier structural damage standard.
 
 ---
 
 ## Individual Report Directory Structure
 
-For in-depth layer topologies, mathematical formulations, loss functions, ablation benchmarks, and deployment profiles, open the individual reports. Each model includes a standardized 4-file technical dossier:
+For in-depth layer topologies, mathematical formulations, loss functions, ablation benchmarks, and deployment profiles, open the individual reports. Each model includes a standardized 5-file technical dossier (`Overview.md`, `Working.md`, `Evaluation.md`, `Code.py`, `MODEL_REPORT.md`):
 
 ```
 reports/
 ├── README.md               <-- Master Benchmark Catalog
-├── hat/                    <-- Hybrid Attention Transformer (Production Engine)
+├── hat/                    <-- Hybrid Attention Transformer (Macro Production Engine)
 │   ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
 │   ├── Working.md          <-- Formulas, Architecture Diagram, Workflow, Hyperparameters
 │   ├── Evaluation.md       <-- Metrics (SSIM/SAM/PSNR/ERGAS), Comparison & Decision Guide
@@ -120,10 +138,35 @@ reports/
 │   ├── Evaluation.md       <-- Metrics, Comparison & Decision Guide
 │   ├── Code.py             <-- Standalone PyTorch Implementation with DDIM Demo
 │   └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
-└── swinir/                 <-- SwinIR (Shifted Window Transformer Baseline)
+├── swinir/                 <-- SwinIR (Shifted Window Transformer Baseline)
+│   ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
+│   ├── Working.md          <-- Formulas, Architecture Diagram, Workflow, Hyperparameters
+│   ├── Evaluation.md       <-- Metrics, Comparison & Decision Guide
+│   ├── Code.py             <-- Standalone PyTorch Implementation with SW-MSA Demo
+│   └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
+├── translandseg/           <-- TransLandSeg (SAM ViT-L · Dedicated Mountain Landslide Engine)
+│   ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
+│   ├── Working.md          <-- Formulas, Architecture Diagram, Workflow, Hyperparameters
+│   ├── Evaluation.md       <-- Metrics (IoU/F1), Wayanad & Himalayan Benchmarks
+│   ├── Code.py             <-- Standalone PyTorch Implementation with Bijie Weights Demo
+│   └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
+├── segformer/              <-- SegFormer B0 (ADE20K Pretrained Water & Sky Disambiguator)
+│   ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
+│   ├── Working.md          <-- Formulas, Architecture Diagram, Softmax Distributions
+│   ├── Evaluation.md       <-- Metrics (mIoU/Sky Conf), Sydney Horizon Benchmark
+│   ├── Code.py             <-- Standalone Implementation with Transformers & Softmax Demo
+│   └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
+├── floodnet/               <-- FloodNet DeepLabV3+ (Tactical Nadir Flood Inundation Engine)
+│   ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
+│   ├── Working.md          <-- Formulas, ASPP Architecture, 100% Normalization
+│   ├── Evaluation.md       <-- Metrics (IoU), Nadir Flash Flood Benchmark & Audits
+│   ├── Code.py             <-- Standalone PyTorch Implementation with ASPP Demo
+│   └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
+└── siamunet/               <-- Microsoft SiamUnet (Pre/Post Building Damage xBD Classifier)
     ├── Overview.md         <-- Intro, Real-life Use Cases, Pros/Cons, Assumptions
-    ├── Working.md          <-- Formulas, Architecture Diagram, Workflow, Hyperparameters
-    ├── Evaluation.md       <-- Metrics, Comparison & Decision Guide
-    ├── Code.py             <-- Standalone PyTorch Implementation with SW-MSA Demo
+    ├── Working.md          <-- Formulas, Siamese Differencing, Structural Integrity Index
+    ├── Evaluation.md       <-- Metrics (xBD F1), Kedarnath & Wayanad Benchmarks
+    ├── Code.py             <-- Standalone PyTorch Implementation with Siamese Demo
     └── MODEL_REPORT.md     <-- Complete Archival Benchmark Report
 ```
+

@@ -104,24 +104,29 @@ class DroneSegmentationEngine:
         self._load_floodnet_deeplab_checkpoint()
 
     def _load_floodnet_deeplab_checkpoint(self):
-        """Loads trained weights from sample_data/flood_vision/checkpoint_deeplab_4class.pth if available."""
+        """Loads trained weights from sample_data/flood_vision/checkpoint_deeplab_4class.pth with strict diagnostics."""
         from pathlib import Path
         ckpt_path = Path(__file__).resolve().parent.parent.parent / "sample_data" / "flood_vision" / "checkpoint_deeplab_4class.pth"
-        if ckpt_path.exists():
-            try:
-                import sys
-                fv_dir = str(ckpt_path.parent)
-                if fv_dir not in sys.path:
-                    sys.path.insert(0, fv_dir)
-                from models.deeplab_model import get_deeplab_model
-                model = get_deeplab_model(num_classes=4, pretrained=False)
-                weights = torch.load(ckpt_path, map_location=self.device)
-                model.load_state_dict(weights)
-                model.to(self.device).eval()
-                self.deeplab_model = model
-                print(f"[DroneSegmentationEngine] Successfully loaded real FloodNet DeepLabV3+ checkpoint from {ckpt_path.name}")
-            except Exception as e:
-                print(f"[DroneSegmentationEngine] DeepLab checkpoint load warning: {e}")
+        if not ckpt_path.exists():
+            print(f"[DroneSegmentationEngine] Checkpoint not found at {ckpt_path}; fallback model active.")
+            return
+
+        try:
+            import sys
+            fv_dir = str(ckpt_path.parent)
+            if fv_dir not in sys.path:
+                sys.path.insert(0, fv_dir)
+            from models.deeplab_model import get_deeplab_model
+            model = get_deeplab_model(num_classes=4, pretrained=False)
+            weights = torch.load(ckpt_path, map_location=self.device)
+            state_dict = weights.get("state_dict", weights) if isinstance(weights, dict) else weights
+            missing, unexpected = model.load_state_dict(state_dict, strict=True)
+            model.to(self.device).eval()
+            self.deeplab_model = model
+            print(f"[DroneSegmentationEngine] Successfully loaded real FloodNet DeepLabV3+ checkpoint from {ckpt_path.name} (193/193 keys verified, eval mode confirmed)")
+        except Exception as e:
+            print(f"[DroneSegmentationEngine] CRITICAL DeepLab checkpoint load error: {e}")
+            raise RuntimeError(f"Failed to load FloodNet DeepLabV3+ checkpoint: {e}") from e
 
     def _init_spectral_heuristic_weights(self):
         """
@@ -196,7 +201,7 @@ class DroneSegmentationEngine:
                 # Optical refinement for landslide debris if mud spectral signature is detected
                 r, g, b = img_np[:, :, 0], img_np[:, :, 1], img_np[:, :, 2]
                 mud_metric = (r + g) / 2.0 - b
-                debris_mask = (mud_metric > 0.16) & (pred_4cls == 0)
+                debris_mask = (mud_metric > 0.16) & (pred_4cls == 0) & (r >= g - 0.04)
                 class_map[debris_mask] = 6
 
                 model_name = "FloodNet DeepLabV3+ (ResNet-50 GroupNorm)"

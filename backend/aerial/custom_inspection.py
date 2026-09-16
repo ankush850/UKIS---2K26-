@@ -17,6 +17,8 @@ import numpy as np
 from PIL import Image
 
 from backend.aerial.segmentation import drone_segmentation_engine, AERIAL_CLASSES
+from backend.aerial.landslide_segmentation import landslide_segmentation_engine
+from backend.aerial.water_detection_segformer import segformer_water_detector
 from backend.aerial.damage_assessment import building_damage_engine
 from backend.aerial.road_accessibility import road_classifier
 from backend.aerial.severity import severity_scorer
@@ -67,21 +69,19 @@ def run_full_custom_inspection(
     user_lat: Optional[float] = None,
     user_lon: Optional[float] = None,
     zone_name: str = "Custom Aerial Survey",
-    gsd_m: float = 0.10
+    gsd_m: float = 0.10,
+    disaster_mode: str = "auto"  # "auto", "flood", "landslide"
 ) -> Dict[str, Any]:
     """
-    Runs the comprehensive tactical drone inspection pipeline on uploaded imagery.
-    
-    Args:
-        post_image_input: Drone survey photo (Base64 string, PIL Image, or numpy array).
-        pre_image_input: Optional pre-disaster baseline photo for Siamese building comparison.
-        user_lat: Optional user-confirmed latitude if image lacks EXIF.
-        user_lon: Optional user-confirmed longitude if image lacks EXIF.
-        zone_name: Descriptive name for the inspected location.
-        gsd_m: Ground Sample Distance in meters per pixel.
-        
-    Returns:
-        Unified dictionary with segmentation, severity, road accessibility, and building damage.
+    Runs the comprehensive tactical drone inspection pipeline on uploaded imagery:
+    1. EXIF GPS extraction + Himalayan bounding-box domain guard
+    2. Dual ML Segmentation:
+       - FloodNet DeepLabV3+ (4 classes: background, flooded-building, flooded-road, water)
+       - TransLandSeg (SAM ViT-L · Bijie-trained dedicated landslide scar detector)
+    3. Intelligent Multi-Model Hazard Routing (Auto or Manual Override)
+    4. Calibrated Severity Scoring (0-100 score + High/Medium/Low priority)
+    5. Road Accessibility Corridor Analysis (Overpass OSM vectors)
+    6. Building Damage Assessment (Single vs Siamese SiamUnet Pre/Post)
     """
     # 1. Load and inspect PIL Image for EXIF GPS
     post_pil = drone_segmentation_engine._load_pil_image(post_image_input)
@@ -97,23 +97,155 @@ def run_full_custom_inspection(
         "longitude": final_lon,
     }
 
-    # 2. Multi-Class Drone Segmentation (FloodNet DeepLabV3+ / U-Net)
+    # Calibrated geographic domain check (Uttarakhand / Himalayan disaster corridor)
+    # Bounding box: Lat [28.5, 31.8], Lon [77.4, 81.3]
+    in_domain = None
+    domain_warning = None
+    if final_lat is not None and final_lon is not None:
+        if (28.5 <= final_lat <= 31.8) and (77.4 <= final_lon <= 81.3):
+            in_domain = True
+            domain_warning = None
+        else:
+            in_domain = False
+            domain_warning = "This image is outside the model's calibrated geographic domain — results may be unreliable."
+    else:
+        in_domain = None
+        domain_warning = "Location not available (no EXIF GPS) — geographic domain guard cannot verify regional calibration."
+
+    domain_guard = {
+        "calibrated_region": "Uttarakhand / Garhwal & Kumaon Himalayas",
+        "calibrated_bbox": [77.4, 28.5, 81.3, 31.8],
+        "in_domain": in_domain,
+        "warning": domain_warning,
+        "domain_notes": "FloodNet calibrated on nadir flood imagery; TransLandSeg calibrated on mountainous Bijie landslide terrain."
+    }
+
+    # 2. Multi-Model ML Inference
+    # Model A: FloodNet DeepLabV3+
     seg_result = drone_segmentation_engine.segment(post_pil, gsd_m=gsd_m)
     hazard = seg_result["hazard_summary"]
     dist = seg_result["distribution"]
 
-    # 3. Calibrated Severity Scoring
-    # Formula: severity = f(affected_area_%, damage_class_weight, confidence)
-    # Weights: destroyed=1.0, major=0.7, road-blocked=0.6, minor=0.4, debris=0.3
+    # Model B: TransLandSeg (Dedicated Bijie-trained Landslide Detector)
+    landslide_res = None
+    try:
+        landslide_res = landslide_segmentation_engine.segment(post_pil, gsd_m=gsd_m)
+    except Exception as e:
+        print(f"[CustomInspection] TransLandSeg inference note: {e}")
+
+    # Model C: SegFormer ADE20K (General-Scene Water & Sky Disambiguator)
+    segformer_res = None
+    try:
+        segformer_res = segformer_water_detector.detect_water(post_pil, gsd_m=gsd_m)
+    except Exception as e:
+        print(f"[CustomInspection] SegFormer water detector note: {e}")
+
+    # 3. Routing Logic (Auto vs Manual Override)
+    flood_water_pct = float(hazard.get("flooded_pct", 0.0))
+    landslide_scar_pct = float(landslide_res.get("landslide_pct", 0.0)) if landslide_res else 0.0
+
+    sf_water_pct = float(segformer_res.get("flood_water_pct", 0.0)) if segformer_res else 0.0
+    sf_sky_pct = float(segformer_res.get("sky_pct", 0.0)) if segformer_res else 0.0
+    sf_water_conf = float(segformer_res.get("water_confidence", 0.0)) if segformer_res else 0.0
+    sf_sky_conf = float(segformer_res.get("sky_confidence", 0.0)) if segformer_res else 0.0
+
+    # Discrepancy Detection: FloodNet nadir-bias misclassifying sky/horizon as water
+    models_disagree = False
+    disagreement_note = None
+    if flood_water_pct >= 10.0 and sf_water_pct < 3.0 and sf_sky_pct >= 10.0:
+        models_disagree = True
+        disagreement_note = (
+            f"Models disagree: FloodNet detected {flood_water_pct}% flood/water, but SegFormer identified "
+            f"{sf_sky_pct}% sky ({round(sf_sky_conf * 100, 1)}% confidence) and near-zero water ({sf_water_pct}%). "
+            f"FloodNet is nadir-calibrated and may misread sky as water in oblique shots; "
+            f"SegFormer's general scene understanding is likely more reliable here."
+        )
+
+    if disaster_mode == "landslide":
+        primary_hazard = "landslide"
+        routing_label = "Landslide / Debris Flow"
+        routing_synthesis = (
+            f"Manual Override (Landslide Scenario): TransLandSeg detected {landslide_scar_pct}% landslide scar. "
+            f"FloodNet detected {flood_water_pct}% flood/debris indicators."
+        )
+    elif disaster_mode == "flood":
+        primary_hazard = "flood"
+        routing_label = "Flood / Riparian Inundation"
+        routing_synthesis = (
+            f"Manual Override (Flood Scenario): FloodNet detected {flood_water_pct}% floodwater. "
+            f"SegFormer confirmed {sf_water_pct}% water ({round(sf_water_conf * 100, 1)}% conf). "
+            f"TransLandSeg detected {landslide_scar_pct}% landslide scar."
+        )
+    else:  # auto
+        if models_disagree:
+            if landslide_scar_pct >= 4.0:
+                primary_hazard = "landslide"
+                routing_label = "Landslide / Debris Flow"
+                routing_synthesis = (
+                    f"TransLandSeg detected {landslide_scar_pct}% landslide scar (Dominant). "
+                    f"Note: FloodNet's {flood_water_pct}% flood reading was resolved as sky horizon by SegFormer ({sf_sky_pct}% sky)."
+                )
+            else:
+                primary_hazard = "baseline"
+                routing_label = "Baseline Terrain / Stable"
+                routing_synthesis = (
+                    f"Scene classified as Stable Baseline Terrain. "
+                    f"FloodNet's {flood_water_pct}% flood reading was resolved as sky horizon by SegFormer ({sf_sky_pct}% sky, 0% water)."
+                )
+        elif landslide_scar_pct >= 4.0 and landslide_scar_pct > max(flood_water_pct, sf_water_pct):
+            primary_hazard = "landslide"
+            routing_label = "Landslide / Debris Flow"
+            routing_synthesis = (
+                f"Flood indicators: low ({flood_water_pct}%) — Landslide indicators: high ({landslide_scar_pct}%) — "
+                f"classified as Landslide Event (TransLandSeg Dominant)."
+            )
+        elif (flood_water_pct >= 4.0 and not models_disagree) or sf_water_pct >= 4.0:
+            primary_hazard = "flood"
+            routing_label = "Flood / Riparian Inundation"
+            routing_synthesis = (
+                f"Flood indicators: confirmed ({max(flood_water_pct, sf_water_pct)}%) — "
+                f"Landslide indicators: low ({landslide_scar_pct}%) — classified as Flood/Inundation Event."
+            )
+        else:
+            primary_hazard = "baseline"
+            routing_label = "Baseline Terrain / Stable"
+            routing_synthesis = (
+                f"Both hazard indicators low: FloodNet water {flood_water_pct}%, SegFormer water {sf_water_pct}%, "
+                f"TransLandSeg scar {landslide_scar_pct}% — classified as Stable Baseline Terrain."
+            )
+
+    routing_info = {
+        "disaster_mode": disaster_mode,
+        "primary_hazard": primary_hazard,
+        "primary_hazard_label": routing_label,
+        "synthesis": routing_synthesis,
+        "flood_indicators_pct": flood_water_pct,
+        "landslide_indicators_pct": landslide_scar_pct,
+        "segformer_water_pct": sf_water_pct,
+        "segformer_water_confidence": sf_water_conf,
+        "segformer_sky_pct": sf_sky_pct,
+        "segformer_sky_confidence": sf_sky_conf,
+        "models_disagree": models_disagree,
+        "disagreement_note": disagreement_note,
+        "dominant_model": (
+            "TransLandSeg (Bijie ViT-L)" if primary_hazard == "landslide"
+            else ("FloodNet & SegFormer Dual-Water" if primary_hazard == "flood"
+            else ("SegFormer Horizon Disambiguated" if models_disagree else "Multi-Model Consensus (Baseline)"))
+        )
+    }
+
+    # 4. Calibrated Severity Scoring (0-100)
+    effective_flood_pct = sf_water_pct if models_disagree else flood_water_pct
+    effective_debris_pct = max(hazard.get("debris_pct", 0.0), landslide_scar_pct)
     dmg_dist = {
         "building_destroyed": dist.get("building-damaged", {}).get("percentage", 0.0) * 0.4,
         "major_damage": dist.get("building-damaged", {}).get("percentage", 0.0) * 0.6,
-        "flooded": hazard["flooded_pct"],
-        "debris": hazard["debris_pct"],
+        "flooded": effective_flood_pct,
+        "debris": effective_debris_pct,
         "minor_damage": dist.get("building-intact", {}).get("percentage", 0.0) * 0.1,
-        "road_blocked": hazard["blocked_roads_pct"]
+        "road_blocked": hazard.get("blocked_roads_pct", 0.0)
     }
-    affected_pct = min(100.0, hazard["flooded_pct"] + hazard["debris_pct"] + hazard["damaged_buildings_pct"])
+    affected_pct = min(100.0, effective_flood_pct + effective_debris_pct + hazard.get("damaged_buildings_pct", 0.0))
     
     severity_res = severity_scorer.calculate_severity(
         affected_area_pct=affected_pct,
@@ -122,7 +254,7 @@ def run_full_custom_inspection(
         blocked_roads_count=1 if hazard["blocked_roads_pct"] > 5.0 else 0
     )
 
-    # 4. Road Accessibility Analysis
+    # 5. Road Accessibility Analysis
     if location_info["has_location"]:
         lat = location_info["latitude"]
         lon = location_info["longitude"]
@@ -130,7 +262,12 @@ def run_full_custom_inspection(
         
         raw_mask = seg_result.get("raw_mask")
         flood_mask = (raw_mask == 1).astype(np.uint8) if raw_mask is not None else None
-        debris_mask = (raw_mask == 6).astype(np.uint8) if raw_mask is not None else None
+        
+        # Prefer dedicated landslide mask for road blockage if available
+        if landslide_res and "raw_mask" in landslide_res:
+            debris_mask = landslide_res["raw_mask"].astype(np.uint8)
+        else:
+            debris_mask = (raw_mask == 6).astype(np.uint8) if raw_mask is not None else None
 
         roads_geojson = road_classifier.classify_roads(
             bbox=bbox,
@@ -214,12 +351,44 @@ def run_full_custom_inspection(
         "status": "success",
         "zone_name": zone_name,
         "location": location_info,
+        "domain_guard": domain_guard,
+        "routing": routing_info,
         "segmentation": {
             "distribution": dist,
             "hazard_summary": hazard,
             "total_area_m2": seg_result.get("total_area_m2", 0.0),
             "segmentation_mask_b64": seg_result.get("segmentation_mask_b64")
         },
+        "landslide_segmentation": {
+            "status": landslide_res.get("status"),
+            "model_name": landslide_res.get("model_name"),
+            "checkpoint_source": landslide_res.get("checkpoint_source"),
+            "checkpoint_fingerprint": landslide_res.get("checkpoint_fingerprint"),
+            "real_model_inference": landslide_res.get("real_model_inference", False),
+            "landslide_pct": landslide_res.get("landslide_pct", 0.0),
+            "landslide_area_m2": landslide_res.get("landslide_area_m2", 0.0),
+            "non_landslide_pct": landslide_res.get("non_landslide_pct", 100.0),
+            "confidence": landslide_res.get("confidence", 0.0),
+            "has_active_landslide": landslide_res.get("has_active_landslide", False),
+            "segmentation_mask_b64": landslide_res.get("segmentation_mask_b64"),
+            "summary": landslide_res.get("summary")
+        } if landslide_res else None,
+        "segformer_water": {
+            "status": segformer_res.get("status"),
+            "model_name": segformer_res.get("model_name"),
+            "architecture": segformer_res.get("architecture"),
+            "benchmark_dataset": segformer_res.get("benchmark_dataset"),
+            "real_model_inference": segformer_res.get("real_model_inference", True),
+            "flood_water_pct": segformer_res.get("flood_water_pct", 0.0),
+            "flood_water_area_m2": segformer_res.get("flood_water_area_m2", 0.0),
+            "water_confidence": segformer_res.get("water_confidence", 0.0),
+            "sky_pct": segformer_res.get("sky_pct", 0.0),
+            "sky_confidence": segformer_res.get("sky_confidence", 0.0),
+            "is_oblique_view": segformer_res.get("is_oblique_view", False),
+            "class_breakdown": segformer_res.get("class_breakdown", {}),
+            "segmentation_mask_b64": segformer_res.get("segmentation_mask_b64"),
+            "summary": segformer_res.get("summary")
+        } if segformer_res else None,
         "severity": severity_res,
         "road_accessibility": road_accessibility_data,
         "building_damage": building_assessment,

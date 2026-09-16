@@ -460,7 +460,84 @@ $$\text{Record} = \{\text{tileId}, \, \text{lat}_{\text{scaled}}, \, \text{lon}_
 
 ---
 
-## 7. Quick Reference Cheat Sheet for Hackathon Judges & Viva
+---
+
+## 7. Tactical Aerial Drone Mathematical Formulations & Disaster Physics
+
+Used in `backend/aerial/` across the Micro Tier tactical inspection pipeline:
+
+### 7.1. TransLandSeg (SAM ViT-L) Patch Projection & Composite Loss
+Input image $\mathbf{I} \in \mathbb{R}^{H \times W \times C}$ is embedded into $N = \frac{HW}{P^2}$ patches ($P=16$):
+
+$$\mathbf{z}_0 = [\mathbf{x}_p^1 \mathbf{E}; \, \mathbf{x}_p^2 \mathbf{E}; \, \dots; \, \mathbf{x}_p^N \mathbf{E}] + \mathbf{E}_{\text{pos}}, \quad \mathbf{E} \in \mathbb{R}^{(P^2 C) \times 1024}$$
+
+Trained with composite Dice + BCE loss to handle severe mountain background-to-scar class imbalance:
+
+$$\mathcal{L}_{\text{landslide}} = 0.5 \cdot \left( -\frac{1}{HW} \sum_{i} [y_i \log \hat{y}_i + (1-y_i) \log(1-\hat{y}_i)] \right) + 0.5 \cdot \left( 1 - \frac{2 \sum_i \hat{y}_i y_i + \epsilon}{\sum_i \hat{y}_i + \sum_i y_i + \epsilon} \right)$$
+
+Physical area extraction from pixel count at Ground Sample Distance (GSD):
+
+$$\text{Area}_{\text{landslide}} (\text{m}^2) = \left( \sum_{x,y} \mathbb{I}(\hat{\mathbf{Y}}(x,y) \ge 0.50) \right) \times (\text{GSD}_m)^2$$
+
+---
+
+### 7.2. SegFormer B0 Spatial Reduction Attention & Softmax Horizon Disambiguation
+Spatial sequence length reduction via ratio $R$ reduces quadratic attention complexity:
+
+$$\mathbf{K}' = \text{Reshape}\left(\frac{HW}{R^2}, \, C \cdot R^2\right)(\mathbf{K}) \mathbf{W}_K$$
+
+$$\text{Attention}(\mathbf{Q}, \mathbf{K}', \mathbf{V}') = \text{Softmax}\left(\frac{\mathbf{Q} (\mathbf{K}')^T}{\sqrt{d_k}}\right) \mathbf{V}'$$
+
+Per-pixel softmax probability for class $k$ across all 150 ADE20K classes:
+
+$$P(k \mid x, y) = \frac{e^{\mathbf{Z}_k(x,y)}}{\sum_{j=1}^{150} e^{\mathbf{Z}_j(x,y)}}$$
+
+- **Sky Channel:** $P_{\text{sky}}(x, y) = P(2 \mid x, y)$
+- **Multi-Water Channel:** $P_{\text{water}}(x, y) = \max_{c \in \{21, 26, 60, 128\}} P(c \mid x, y)$
+
+---
+
+### 7.3. Consensus Discrepancy Auditing Formula (`models_disagree`)
+$$\text{models\_disagree} = \left( P_{\text{FloodNet}}^{\text{water}} \ge 10.0\% \right) \land \left( P_{\text{SegFormer}}^{\text{water}} < 3.0\% \right) \land \left( P_{\text{SegFormer}}^{\text{sky}} \ge 10.0\% \right)$$
+
+When true, effective flood percentage is sanitized: $\text{Water}_{\text{effective}} = P_{\text{SegFormer}}^{\text{water}} \approx 0.0\%$.
+
+---
+
+### 7.4. Microsoft SiamUnet Structural Integrity & Normalization
+$$\Delta \mathbf{F} = |\mathcal{E}(\mathbf{I}_{\text{pre}}; \mathbf{W}) - \mathcal{E}(\mathbf{I}_{\text{post}}; \mathbf{W})|$$
+
+Composite Structural Integrity Score:
+
+$$\text{Integrity} = \frac{1.0 \cdot N_{\text{intact}} + 0.70 \cdot N_{\text{minor}} + 0.20 \cdot N_{\text{major}} + 0.0 \cdot N_{\text{destroyed}}}{N_{\text{total}}} \times 100.0\%$$
+
+Strict mathematical normalization:
+
+$$\text{Destroyed}_{\text{pct}} + \text{Major}_{\text{pct}} + \text{Minor}_{\text{pct}} \equiv 100.0\% \quad \text{(of damaged footprints)}$$
+
+---
+
+### 7.5. Overpass OSM Vector Buffering & Road Blockage Ratio
+Road LineString $\mathcal{L}_k$ is buffered by width $\delta_w = 10\text{m}$:
+
+$$\mathcal{P}_{\text{road}}^{(k)} = \text{Buffer}(\mathcal{L}_k, \, \delta_w)$$
+
+$$\text{Blockage Ratio } \beta_k = \frac{\text{Area}(\mathcal{P}_{\text{road}}^{(k)} \cap [\mathbf{M}_{\text{flood}} \cup \mathbf{M}_{\text{debris}}])}{\text{Area}(\mathcal{P}_{\text{road}}^{(k)})} \times 100.0\%$$
+
+Segment status is flagged `BLOCKED` if $\beta_k \ge 15.0\%$.
+
+---
+
+### 7.6. DMMC Disaster Severity Score Composite Formula
+$$\mathcal{S} = \text{Clamp}\left( \left[ \sum_{k} w_k P_k \right] \times \mu_{\text{road}} \times C_{\text{model}}, \quad 0, \quad 100 \right)$$
+
+$$\mu_{\text{road}} = 1.0 + \min(0.30, \, 0.10 \times N_{\text{blocked\_roads}})$$
+
+Where weights $w = [0.35_{\text{dest}}, 0.20_{\text{major}}, 0.20_{\text{flood}}, 0.15_{\text{debris}}, 0.05_{\text{minor}}]$.
+
+---
+
+## 8. Quick Reference Cheat Sheet for Hackathon Judges & Viva
 
 | Mathematical Concept | Primary Formula / Equation | Target / Benchmark Value | File Implementation |
 | :--- | :--- | :---: | :--- |
@@ -473,11 +550,14 @@ $$\text{Record} = \{\text{tileId}, \, \text{lat}_{\text{scaled}}, \, \text{lon}_
 | **Peak SNR (PSNR)** | $10 \log_{10}\left(\frac{1.0}{\text{MSE}}\right)$ | **$24.81\text{ dB}$** (Punjab) | `metrics.py` |
 | **Structural SSIM** | $\frac{(2\mu_x \mu_y + C_1)(2\sigma_{xy} + C_2)}{(\mu_x^2 + \mu_y^2 + C_1)(\sigma_x^2 + \sigma_y^2 + C_2)}$ | **$0.1667$** (HAT vs SPOT) | `metrics.py` |
 | **Satellite Error (ERGAS)** | $100 \frac{h_{\text{HR}}}{h_{\text{LR}}} \sqrt{\frac{1}{C} \sum_c \frac{\text{RMSE}_c^2}{\mu_c^2}}$ | **$3.12$** ($< 3.5$ is high quality) | `metrics.py` |
-| **Natural Blind IQA (NIQE)** | $\sqrt{(\boldsymbol{\nu}_p - \boldsymbol{\nu}_{\text{SR}})^T \boldsymbol{\Sigma}_{\text{avg}}^{-1} (\boldsymbol{\nu}_p - \boldsymbol{\nu}_{\text{SR}})}$ | **$4.18$** ($3.8 - 5.0$ range) | `benchmark_models.py` |
-| **Spatial NSS (BRISQUE)** | SVR on AGGD coefficients of MSCN pairs | **$23.5$** ($< 30$ is clean) | `benchmark_models.py` |
-| **Multi-Spectral Cloud Mask**| $(B_{\text{vis}} > 0.28) \land (W < 0.15) \land (\text{NDWI} < 0.1)$ | Confidence $\to 0.0\%$ | `cloud_mask.py` |
+| **TransLandSeg Dice Loss** | $1 - \frac{2\sum \hat{y}y + \epsilon}{\sum \hat{y} + \sum y + \epsilon}$ | **93.1% Confidence** (Wayanad) | `landslide_segmentation.py` |
+| **SegFormer Softmax Sky** | $P(\text{Sky} \mid x,y) = \frac{e^{Z_2}}{\sum e^{Z_j}}$ | **99.5% Confidence** (Sydney) | `water_detection_segformer.py`|
+| **Discrepancy Trigger** | $P_{\text{FNet}}^{\text{water}} \ge 10\% \land P_{\text{SF}}^{\text{water}} < 3\% \land P_{\text{SF}}^{\text{sky}} \ge 10\%$ | `models_disagree = True` | `custom_inspection.py` |
+| **Structural Integrity** | $\frac{1.0 N_{\text{intact}} + 0.7 N_{\text{min}} + 0.2 N_{\text{maj}}}{N_{\text{total}}} \times 100\%$ | Normalized to 100.0% | `damage_assessment.py` |
+| **OSM Road Blockage** | $\frac{\text{Area}(\text{RoadBuffer} \cap \text{Hazard})}{\text{Area}(\text{RoadBuffer})} \ge 15\%$ | Status: `BLOCKED` | `road_accessibility.py` |
+| **DMMC Severity Index** | $\left[ \sum w_k P_k \right] \times \mu_{\text{road}} \times C_{\text{model}}$ | Scale: 0 to 100 | `severity.py` |
 | **On-Chain Spatial Anchor** | $\lfloor \text{coordinate} \times 10^6 \rceil$ | **$\approx 11.1\text{ cm}$** precision | `TileProvenance.sol` |
 
 ---
 
-*Authored for the Smart India Hackathon (UKIS-2026) — Super-Resolution Mapping for Sentinel-2 Imagery.*
+*Authored for the Smart India Hackathon (UKIS-2026) — Problem P-008: AI-Powered Multi-Tier Disaster Assessment & Infrastructure Monitoring.*

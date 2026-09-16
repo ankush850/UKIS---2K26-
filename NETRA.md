@@ -214,6 +214,16 @@ graph TD
 | **LDSR-S2 (ESA OpenSR Diffusion)** | **~1,130 MB** | [`weights/opensr-ldsrs2_v1_0_0.ckpt`](weights/opensr-ldsrs2_v1_0_0.ckpt) | ESA OpenSR consortium latent diffusion model trained on 4-band RGB-NIR Sentinel-2 imagery with 15 DDIM sampling steps. | **Generative Diffusion Baseline:** Research benchmark comparing iterative reverse diffusion against single-pass regression. | [📖 LDSR-S2 Report](reports/ldsr_s2/MODEL_REPORT.md) |
 | **SwinIR (Shifted Window Transformer)** | **11.90 M** | [`weights/swinir_x4_satellite.pt`](weights/swinir_x4_satellite.pt) | Residual Swin Transformer Blocks (RSTB) with alternating standard and shifted window attention. | **Deep Attention Comparative Benchmark:** Evolutionary bridge demonstrating why HAT's cross-window attention is superior. | [📖 SwinIR Report](reports/swinir/MODEL_REPORT.md) |
 
+### Tactical Aerial Drone Models (Micro Tier — Netra-D):
+
+| Model Architecture | Parameters | Checkpoint File | Training Dataset & Purpose | Operational Role in Project |
+| :--- | :---: | :--- | :--- | :--- |
+| **TransLandSeg (SAM ViT-L)** | **304.0 M** | [`checkpoints/Bijie.pth.tar`](checkpoints/Bijie.pth.tar) | Trained on **Bijie Landslide Dataset** (mountainous slope failures and debris flow deposits). | **Dedicated Landslide Detection:** Solves the zero-landslide-class limitation of flood models; isolates active landslide scars and mudflow deposits with 93%+ confidence. |
+| **SegFormer B0 (ADE20K)** | **3.71 M** | Pretrained `nvidia/segformer-b0-finetuned-ade-512-512` | Pretrained on ADE20K 150-class scene understanding (explicit sky, water, sea, river, lake classes). | **Water & Sky Horizon Disambiguation:** Resolves oblique drone horizon false positive flood flags with per-pixel softmax confidence estimation. |
+| **FloodNet DeepLabV3+** | **26.70 M** | [`backend/aerial/checkpoints/floodnet_deeplabv3plus.pth`](backend/aerial/) | Trained on FloodNet Nadir Drone Dataset (4 tactical flood classes). | **Nadir Inundation Engine:** High-resolution floodwater and submerged infrastructure segmentation in nadir drone surveys. |
+| **Microsoft SiamUnet** | **7.80 M** | [`backend/aerial/damage_assessment.py`](backend/aerial/damage_assessment.py) | Trained on xBD disaster building damage benchmark. | **Structural Damage Classifier:** Evaluates pre/post paired aerial sorties into Destroyed, Major, Minor, and Intact categories (normalized to 100%). |
+
+
 ---
 
 ## 7. Downstream Vectorization Engine (Roads, Bridges, Parcels)

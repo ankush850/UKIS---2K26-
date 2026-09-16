@@ -17,10 +17,11 @@
 6. [Downstream Vectorization Engine](#6-downstream-vectorization-engine)
 7. [NETRA: Cryptographic Satellite Provenance on Polygon Amoy](#7-netra-cryptographic-satellite-provenance-on-polygon-amoy)
 8. [Dual-Mode Quality Assessment Suite](#8-dual-mode-quality-assessment-suite)
-9. [Comprehensive REST API Specification](#9-comprehensive-rest-api-specification)
-10. [Frontend Architecture & Synchronized Viewport UX](#10-frontend-architecture--synchronized-viewport-ux)
-11. [Installation, Environment Setup & Operational Run Guide](#11-installation-environment-setup--operational-run-guide)
-12. [Project Directory & File Structure](#12-project-directory--file-structure)
+9. [Netra Aerial: Tactical Drone Intelligence & Tri-Model Hazard Engine](#9-netra-aerial-tactical-drone-intelligence--tri-model-hazard-engine)
+10. [Comprehensive REST API Specification](#10-comprehensive-rest-api-specification)
+11. [Frontend Architecture & Synchronized Viewport UX](#11-frontend-architecture--synchronized-viewport-ux)
+12. [Installation, Environment Setup & Operational Run Guide](#12-installation-environment-setup--operational-run-guide)
+13. [Project Directory & File Structure](#13-project-directory--file-structure)
 
 > 📐 **Dedicated Mathematical Formulas & Physics Guide:** For complete equation derivations, LaTeX formulations, loss functions, and PyTorch/NumPy code snippets for every metric and layer, see [`Documentation/FORMULAS_AND_MATHEMATICAL_DERIVATIONS.md`](FORMULAS_AND_MATHEMATICAL_DERIVATIONS.md).
 
@@ -287,7 +288,46 @@ graph TD
 
 ---
 
-## 9. Comprehensive REST API Specification
+## 9. Netra Aerial: Tactical Drone Intelligence & Tri-Model Hazard Engine
+
+When satellite-level triage flags high uncertainty, cloud occlusion, or severe disaster alerts, the platform deploys the **Micro Tier (Netra Aerial)**. This tactical UAV module operates as a dedicated intelligence pipeline engineered for Himalayan terrain:
+
+### 9.1. The Real-World Domain Dilemmas Solved
+Standard single-model drone inspection pipelines suffer from severe domain-generalization failures in real disaster deployments:
+1. **The Missing Landslide Class:** Nadir flood models (e.g., FloodNet) are trained on classes like water, flooded roads, and flooded buildings. They possess zero class representation for bare-soil mountain landslide scars or mudflow debris fields. In landslides (such as Wayanad or Chamoli), FloodNet detects near-zero disaster activity.
+2. **Oblique Perspective Sky Bias:** FloodNet was trained strictly on nadir (straight-down 90°) drone surveys where sky never appears. When an oblique aerial photo with a blue sky horizon is evaluated, FloodNet defaults to classifying the blue sky as **66.66% floodwater**!
+
+### 9.2. Tri-Model Hazard Segmentation Suite
+NETRA-D introduces a tri-model ensemble with intelligent consensus routing:
+- **FloodNet DeepLabV3+ (26.70M params):** High-precision nadir structural inundation and floodwater segmentation.
+- **TransLandSeg (SAM ViT-L · Bijie Dataset, 304.0M params):** Dedicated 304M-parameter Vision Transformer trained on the mountainous Bijie Landslide Dataset, isolating active landslide scars and mudflows with 93%+ confidence.
+- **SegFormer B0 (ADE20K Pretrained, 3.71M params):** 150-class general scene understanding transformer with explicit, separate classes for `sky` (Class 2), `water` (Class 21), `sea` (Class 26), `river` (Class 60), and `lake` (Class 128). Generates per-pixel softmax confidence distributions to cleanly separate sky horizons from true water bodies.
+
+### 9.3. Intelligent Consensus & Discrepancy Routing
+The consensus router continuously audits multi-model outputs:
+$$\text{If } (\text{FloodNet}_{\text{water}} \ge 10\% \land \text{SegFormer}_{\text{water}} < 3\% \land \text{SegFormer}_{\text{sky}} \ge 10\%) \implies \text{models\_disagree} = \text{True}$$
+When a discrepancy is detected:
+- The false positive flood reading is suppressed.
+- The blue horizon is isolated as Sky (with 99%+ confidence).
+- The scene is re-routed to its true status (*Stable Baseline* or *Landslide Dominant*).
+
+### 9.4. Building Damage Assessment (Microsoft SiamUnet - xBD Standard)
+Evaluates pre- and post-disaster paired imagery using a Siamese CNN adhering to the global xBD/HAZUS standard:
+- `Destroyed` | `Major Damage` | `Minor Damage` | `Intact` (Mathematically normalized to $100.0\%$).
+
+### 9.5. Live OpenStreetMap Overpass Road Passability
+- Automatically queries the OSM Overpass API for real highway vectors within the survey bounding box (e.g., NH-7, Badrinath Corridor).
+- Computes buffer polygon intersections with active flood and landslide debris masks.
+- Flags segments exceeding 15% blockage as `BLOCKED (IMPASSABLE)` and highlights critical evacuation chokepoints.
+
+### 9.6. 60-Frame Simulated Live HUD Drone Sortie
+- Runs a 60-frame Ken Burns flight trajectory simulating drone altitude changes, panning, and banking angles over static survey images.
+- Executes real-time PyTorch neural inference on every individual video frame.
+- Projects live flight telemetry (altitude, air speed, wind vectors, hazard percentages) onto a tactical HUD canvas.
+
+---
+
+## 10. Comprehensive REST API Specification
 
 The FastAPI backend exposes fully documented, asynchronous REST endpoints:
 
@@ -390,7 +430,7 @@ Anchors the active raster SHA-256 hash and scaled spatial coordinates to Polygon
 
 ---
 
-## 10. Frontend Architecture & Synchronized Viewport UX
+## 11. Frontend Architecture & Synchronized Viewport UX
 
 The frontend is a zero-build, dependency-free vanilla HTML5/JavaScript application optimized for instantaneous rendering of high-resolution satellite imagery:
 
@@ -403,9 +443,9 @@ The frontend is a zero-build, dependency-free vanilla HTML5/JavaScript applicati
 
 ---
 
-## 11. Installation, Environment Setup & Operational Run Guide
+## 12. Installation, Environment Setup & Operational Run Guide
 
-### 11.1. Prerequisites
+### 12.1. Prerequisites
 - **Operating System:** Windows 10/11, Ubuntu 20.04+, or macOS
 - **Python:** Version 3.10 or higher
 - **PyTorch:** Version 2.0 or higher
@@ -413,7 +453,7 @@ The frontend is a zero-build, dependency-free vanilla HTML5/JavaScript applicati
   - Minimum: Standard 4-Core CPU, 8 GB RAM
   - Recommended: NVIDIA GPU with $\ge 4\text{ GB}$ VRAM (CUDA enabled)
 
-### 11.2. Installation Steps
+### 12.2. Installation Steps
 ```bash
 # 1. Clone repository
 git clone https://github.com/ankush850/UKIS-2026.git
@@ -430,7 +470,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 11.3. Environment Configuration (`.env`)
+### 12.3. Environment Configuration (`.env`)
 Create a `.env` file in the root directory (based on `.env.example`):
 ```ini
 CDSE_CLIENT_ID="your-copernicus-client-id"
@@ -440,14 +480,14 @@ PRIVATE_KEY="your-polygon-amoy-private-key"
 CONTRACT_ADDRESS="0x2287c88b7764A9D386FeE490958e0aF1316b8F10"
 ```
 
-### 11.4. Launching the Backend Server
+### 12.4. Launching the Backend Server
 ```bash
 # Start FastAPI backend on localhost:8000
 python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 Open `frontend/index.html` in your web browser or navigate to `http://localhost:8000` to interact with the full live dashboard.
 
-### 11.5. Running Automated Verification & Benchmarks
+### 12.5. Running Automated Verification & Benchmarks
 ```bash
 # Run comprehensive model benchmarks across Punjab, Delhi, and Varanasi
 python scripts/benchmark_models.py
@@ -461,7 +501,7 @@ pytest tests/
 
 ---
 
-## 12. Project Directory & File Structure
+## 13. Project Directory & File Structure
 
 ```
 UKIS-2026/
