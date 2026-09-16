@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UKIS-2026 — Super Resolution Mapping (SRM) | Sentinel-2 (10m → 2.5m)</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="shortcut icon" href="/static/logo.png">
+    <link rel="apple-touch-icon" href="/static/logo.png">
     <!-- Google Fonts: IBM Plex Sans + IBM Plex Mono + legacy fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1388,6 +1392,19 @@
                             <option value="kedarnath">Kedarnath / Mandakini (30.735°N, 79.066°E)</option>
                             <option value="joshimath">Joshimath Subsidence (30.556°N, 79.565°E)</option>
                             <option value="none">No location (Skip road accessibility)</option>
+                        </select>
+                    </div>
+
+                    <!-- Hazard Scenario / Routing Mode Selector -->
+                    <div class="custom-geo-helper" style="margin-top: 10px;">
+                        <label style="font-size: 0.72rem; color: var(--text-2); display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>HAZARD ROUTING PIPELINE</span>
+                            <span id="routing-mode-label" style="color: #a855f7; font-family: var(--mono); font-size: 0.7rem;">Dual-Model AI</span>
+                        </label>
+                        <select id="custom-disaster-mode" class="config-select custom-sector-select-constrained">
+                            <option value="auto">Auto-detect Hazard (Dual: FloodNet + TransLandSeg)</option>
+                            <option value="landslide">Landslide Scenario (TransLandSeg Primary)</option>
+                            <option value="flood">Flood Scenario (FloodNet Primary)</option>
                         </select>
                     </div>
 

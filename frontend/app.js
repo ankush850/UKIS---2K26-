@@ -3087,6 +3087,8 @@ document.addEventListener("DOMContentLoaded", () => {
         else if (sectorVal === "joshimath") { userLat = 30.5560; userLon = 79.5650; }
         else if (sectorVal === "none") { userLat = -999; userLon = -999; } // explicitly skip
 
+        const disasterMode = document.getElementById("custom-disaster-mode")?.value || "auto";
+
         try {
             const resp = await fetch("/api/aerial/inspect-upload", {
                 method: "POST",
@@ -3096,7 +3098,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     pre_image_b64: aerialState.customPreImageB64,
                     lat: (userLat === -999 ? null : userLat),
                     lon: (userLon === -999 ? null : userLon),
-                    zone_name: sectorVal !== "auto" && sectorVal !== "none" ? `Custom Survey (${sectorVal.toUpperCase()})` : "Custom Drone Inspection"
+                    zone_name: sectorVal !== "auto" && sectorVal !== "none" ? `Custom Survey (${sectorVal.toUpperCase()})` : "Custom Drone Inspection",
+                    disaster_mode: disasterMode
                 })
             });
 
@@ -3130,6 +3133,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const score = sev.severity_score || 50;
         const level = sev.level || "MEDIUM";
         const color = sev.color_hex || "#F59E0B";
+        const routing = res.routing || {};
+        const tls = res.landslide_segmentation || {};
+        const sf = res.segformer_water || {};
         const seg = res.segmentation || {};
         const hz = seg.hazard_summary || {};
         const roads = res.road_accessibility || {};
@@ -3164,8 +3170,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>Road Passability</span>
                         <span style="color: #94a3b8; font-size: 10px;">SKIPPED</span>
                     </div>
-                    <div style="font-size: 11px; color: #94a3b8;">
-                        📍 Location not available — road accessibility skipped.
+                    <div style="font-size: 10.5px; color: var(--text-3);">
+                        Location not available — road accessibility skipped.
                     </div>
                 </div>
             `;
@@ -3206,6 +3212,90 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
         }
 
+        const dg = res.domain_guard || {};
+        let domainGuardHtml = "";
+        if (dg.in_domain === false) {
+            domainGuardHtml = `
+                <div class="domain-guard-banner warning" style="background: rgba(239, 68, 68, 0.14); border: 1px solid rgba(239, 68, 68, 0.45); color: #fca5a5; padding: 7px 10px; border-radius: 6px; margin: 8px 0; font-size: 11px; display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 13px;">⚠️</span>
+                    <span><strong>Geographic Domain Guard:</strong> Location is outside the calibrated Himalayan disaster corridor (${dg.calibrated_region || 'Uttarakhand'}). TransLandSeg (Bijie mountainous dataset) and FloodNet models may exhibit higher uncertainty in flat urban or coastal terrain.</span>
+                </div>
+            `;
+        } else if (dg.in_domain === null) {
+            domainGuardHtml = `
+                <div class="domain-guard-banner neutral" style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.2); color: #94a3b8; padding: 5px 9px; border-radius: 6px; margin: 6px 0; font-size: 10.5px; display: flex; align-items: center; gap: 6px;">
+                    <span>📍</span>
+                    <span>Location not available (no EXIF GPS). Models evaluated with mountainous terrain disaster calibration.</span>
+                </div>
+            `;
+        }
+
+        // Cross-Model Hazard Routing Synthesis Banner
+        let routingBannerHtml = "";
+        if (routing && routing.primary_hazard) {
+            const isLandslide = routing.primary_hazard === "landslide";
+            const isFlood = routing.primary_hazard === "flood";
+            const accentColor = isLandslide ? "#f59e0b" : (isFlood ? "#06b6d4" : "#10b981");
+            const accentBg = isLandslide ? "rgba(245, 158, 11, 0.12)" : (isFlood ? "rgba(6, 182, 212, 0.12)" : "rgba(16, 185, 129, 0.12)");
+            const accentBorder = isLandslide ? "rgba(245, 158, 11, 0.35)" : (isFlood ? "rgba(6, 182, 212, 0.35)" : "rgba(16, 185, 129, 0.35)");
+
+            routingBannerHtml = `
+                <div class="hazard-routing-card" style="margin: 8px 0 12px 0; padding: 12px 14px; background: #0a0f1d; border: 1px solid ${accentBorder}; border-radius: var(--radius-sm, 8px); box-shadow: 0 4px 18px rgba(0,0,0,0.35);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${accentColor}; box-shadow: 0 0 8px ${accentColor};"></span>
+                            <strong style="font-size: 0.82rem; letter-spacing: 0.5px; text-transform: uppercase; color: #f8fafc;">
+                                Primary Hazard: <span style="color: ${accentColor};">${routing.primary_hazard_label || 'Evaluated'}</span>
+                            </strong>
+                        </div>
+                        <span style="font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; background: ${accentBg}; border: 1px solid ${accentBorder}; color: ${accentColor}; font-weight: 600;">
+                            Dominant: ${routing.dominant_model || 'Tri-Model'}
+                        </span>
+                    </div>
+
+                    <div style="font-size: 11px; color: var(--text-2); line-height: 1.45; margin: 8px 0 10px 0; padding: 7px 10px; background: rgba(0,0,0,0.3); border-radius: 5px; border-left: 3px solid ${accentColor};">
+                        ${routing.synthesis || 'Multi-model consensus evaluated.'}
+                    </div>
+
+                    ${routing.models_disagree && routing.disagreement_note ? `
+                        <div style="margin: 8px 0 10px 0; padding: 8px 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 5px; color: #fbbf24; font-size: 11px; line-height: 1.4;">
+                            ⚠️ <strong>Model Discrepancy Note:</strong> ${routing.disagreement_note}
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; font-family: var(--mono);">
+                        <div style="flex: 1; min-width: 120px; padding: 6px 10px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 5px;">
+                            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">TransLandSeg Landslide</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #fbbf24; margin-top: 2px;">
+                                ${tls.landslide_pct !== undefined ? tls.landslide_pct : 0}% <span style="font-size: 10px; font-weight: normal; color: var(--text-3);">scar area</span>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 120px; padding: 6px 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 5px;">
+                            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">SegFormer ADE20K Water</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #38bdf8; margin-top: 2px;">
+                                ${sf.flood_water_pct !== undefined ? sf.flood_water_pct : 0}% <span style="font-size: 10px; font-weight: normal; color: var(--text-3); font-size: 9.5px;">(${Math.round((sf.water_confidence || 0) * 100)}% conf)</span>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 120px; padding: 6px 10px; background: rgba(147, 197, 253, 0.08); border: 1px solid rgba(147, 197, 253, 0.25); border-radius: 5px;">
+                            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">SegFormer Sky Horizon</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #93c5fd; margin-top: 2px;">
+                                ${sf.sky_pct !== undefined ? sf.sky_pct : 0}% <span style="font-size: 10px; font-weight: normal; color: var(--text-3); font-size: 9.5px;">(${Math.round((sf.sky_confidence || 0) * 100)}% conf)</span>
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; min-width: 120px; padding: 6px 10px; background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 5px;">
+                            <div style="font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">FloodNet DeepLabV3+</div>
+                            <div style="font-size: 13px; font-weight: 700; color: #06b6d4; margin-top: 2px;">
+                                ${hz.flooded_pct !== undefined ? hz.flooded_pct : 0}% <span style="font-size: 10px; font-weight: normal; color: var(--text-3);">nadir flood</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         panel.innerHTML = `
             <div class="unified-result-header">
                 <span class="unified-result-title">
@@ -3217,19 +3307,31 @@ document.addEventListener("DOMContentLoaded", () => {
                 </span>
             </div>
 
-            <!-- Preview Strip & Key Numbers -->
-            <div class="unified-preview-strip">
-                <div class="unified-preview-box">
-                    <img src="${res.preview_image_b64}" alt="Inspected Frame">
-                    ${seg.segmentation_mask_b64 ? `<img src="${seg.segmentation_mask_b64}" alt="Segmentation Mask" class="overlay-mask" id="unified-overlay-mask">` : ''}
+            ${domainGuardHtml}
+
+            <!-- Cross-Model Hazard Routing Synthesis -->
+            ${routingBannerHtml}
+
+            <!-- 1. Dedicated Landslide Differential (TransLandSeg · Bijie-trained) -->
+            ${renderTransLandSegBox(res.preview_image_b64, tls)}
+
+            <!-- 2. General Scene Water Detection (SegFormer · ADE20K) -->
+            ${renderSegFormerWaterBox(res.preview_image_b64, sf)}
+
+            <!-- 3. AI Flood / Debris Differential (FloodNet · DeepLabV3+) -->
+            ${renderFloodNetBox(res.preview_image_b64, seg.segmentation_mask_b64, hz, sev)}
+
+            <!-- Summary Directive & Multi-Model Priority Strip -->
+            <div class="unified-meta-box" style="margin: 8px 0 10px 0; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <div><strong style="color: #fbbf24;">TransLandSeg Scar:</strong> <span style="color:#fbbf24; font-family:var(--mono);">${tls.landslide_pct !== undefined ? tls.landslide_pct : 0}%</span></div>
+                    <div><strong style="color: #38bdf8;">SegFormer Water:</strong> <span style="color:#38bdf8; font-family:var(--mono);">${sf.flood_water_pct !== undefined ? sf.flood_water_pct : 0}% (${Math.round((sf.water_confidence || 0) * 100)}% conf)</span></div>
+                    <div><strong style="color: #93c5fd;">SegFormer Sky:</strong> <span style="color:#93c5fd; font-family:var(--mono);">${sf.sky_pct !== undefined ? sf.sky_pct : 0}%</span></div>
+                    <div><strong style="color: #06b6d4;">FloodNet Inundation:</strong> <span style="color:#06b6d4; font-family:var(--mono);">${hz.flooded_pct || 0}%</span></div>
+                    <div><strong>Priority:</strong> <span style="color:${color}; font-weight:700;">${sev.badge || 'CRITICAL'}</span></div>
                 </div>
-                <div class="unified-meta-box">
-                    <div><strong>Flooded Inundation:</strong> <span style="color:#06b6d4; font-family:var(--mono);">${hz.flooded_pct || 0}%</span></div>
-                    <div><strong>Debris / Mud Flow:</strong> <span style="color:#d97706; font-family:var(--mono);">${hz.debris_pct || 0}%</span></div>
-                    <div><strong>Severity Priority:</strong> <span style="color:${color}; font-weight:700;">${sev.badge || 'CRITICAL'}</span></div>
-                    <div style="font-size: 10.5px; color: var(--text-3); line-height: 1.3; margin-top: 2px;">
-                        ${sev.directive || 'Execute tactical field inspection.'}
-                    </div>
+                <div style="font-size: 10.5px; color: var(--text-3); line-height: 1.3; margin-top: 4px;">
+                    ${sev.directive || 'Execute tactical field inspection.'}
                 </div>
             </div>
 
@@ -3244,7 +3346,531 @@ document.addEventListener("DOMContentLoaded", () => {
                 ▶ Run Simulated Flight Pass on this Image
             </button>
         `;
+
+        attachSliderListeners('tls');
+        attachSliderListeners('sf');
+        attachSliderListeners('fnet');
+        window.initSliderSync('tls');
+        window.initSliderSync('sf');
+        window.initSliderSync('fnet');
     }
+
+    // Helper: Render TransLandSeg Dedicated Landslide Comparison Component
+    function renderTransLandSegBox(rawSrc, tls = {}) {
+        const maskSrc = tls.segmentation_mask_b64;
+        const lsPct = tls.landslide_pct !== undefined ? tls.landslide_pct : 0;
+        const nonLsPct = tls.non_landslide_pct !== undefined ? tls.non_landslide_pct : 100;
+        const areaM2 = tls.landslide_area_m2 || 0;
+        const conf = Math.round((tls.confidence || 0) * 100);
+        const fp = tls.checkpoint_fingerprint || "b69f843685fa";
+
+        if (!maskSrc) {
+            return `
+                <div class="landslide-cmp-container amber" id="landslide-cmp-tls" style="margin-bottom: 12px;">
+                    <div class="cmp-header">
+                        <div class="cmp-title-group">
+                            <span class="cmp-live-indicator amber"></span>
+                            <h4 class="cmp-title" style="color: #fbbf24;">Landslide Differential (TransLandSeg &bull; Bijie-trained)</h4>
+                            <span class="cmp-badge-amber">SAM ViT-L</span>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; font-size: 11px; color: var(--text-3);">
+                        TransLandSeg model inactive or no landslide mask generated.
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="landslide-cmp-container amber" id="landslide-cmp-tls" style="margin-bottom: 14px;">
+                <div class="cmp-header">
+                    <div class="cmp-title-group">
+                        <span class="cmp-live-indicator amber"></span>
+                        <h4 class="cmp-title" style="color: #fbbf24;">Landslide Differential (TransLandSeg &bull; Bijie-trained)</h4>
+                        <span class="cmp-badge-amber">SAM ViT-L &bull; 770 Scars Benchmark</span>
+                    </div>
+                    <div class="cmp-controls">
+                        <!-- Mask Opacity Slider -->
+                        <div class="cmp-opacity-wrap" title="Adjust TransLandSeg overlay opacity">
+                            <span>Overlay:</span>
+                            <input type="range" min="15" max="100" value="85" class="cmp-opacity-slider" id="cmp-opacity-slider-tls" oninput="window.setMaskOpacity(this.value, 'tls')">
+                            <span class="cmp-opacity-num" id="cmp-opacity-val-tls">85%</span>
+                        </div>
+
+                        <!-- View Toggle Buttons -->
+                        <div class="cmp-btn-group" role="group" aria-label="Comparison View Mode">
+                            <button type="button" class="cmp-mode-btn active" id="btn-mode-side-tls" onclick="window.setCmpMode('side', 'tls')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="2"></rect><rect x="13" y="3" width="8" height="18" rx="2"></rect></svg>
+                                Side-by-Side
+                            </button>
+                            <button type="button" class="cmp-mode-btn" id="btn-mode-slider-tls" onclick="window.setCmpMode('slider', 'tls')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><polygon points="8,8 4,12 8,16"></polygon><polygon points="16,8 20,12 16,16"></polygon></svg>
+                                Split Slider
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1. Side-by-Side 2-Column Grid -->
+                <div class="cmp-grid-view" id="cmp-grid-view-tls">
+                    <!-- Raw Input Card -->
+                    <div class="cmp-card">
+                        <div class="cmp-card-tag tag-raw">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot"></span>
+                                <span>RAW FIELD PHOTO</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-gray">INPUT FRAME</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span>Orthophoto / Drone</span>
+                            <span>RGB Sensor</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Segmentation Overlay Card (Amber TransLandSeg Mask) -->
+                    <div class="cmp-card" style="border-color: rgba(245, 158, 11, 0.3);">
+                        <div class="cmp-card-tag tag-ml" style="background: rgba(245, 158, 11, 0.1);">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot" style="background: #f59e0b;"></span>
+                                <span style="color: #fbbf24;">TRANSLANDSEG SCAR DETECTION</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-amber">ML DETECTED</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img">
+                            <img src="${maskSrc}" alt="TransLandSeg Landslide Mask" class="cmp-img-mask-overlay" id="cmp-side-mask-tls" style="opacity: 0.85;">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span class="cmp-stat-badge amber">Landslide Scar: ${lsPct}%</span>
+                            <span class="cmp-stat-badge" style="color: #94a3b8;">Confidence: ${conf}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Interactive Before/After Split Slider -->
+                <div class="cmp-slider-view hidden" id="cmp-slider-view-tls">
+                    <div class="slider-viewport" id="slider-viewport-tls">
+                        <!-- Under: Raw Image + Amber Mask Overlay -->
+                        <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img slider-img-under-base">
+                        <img src="${maskSrc}" alt="TransLandSeg Mask" class="cmp-img slider-img-under-mask" id="slider-under-mask-tls" style="opacity: 0.85;">
+
+                        <!-- Over (Clipped): Pure Raw Photo -->
+                        <div class="slider-overlay-clip" id="slider-overlay-clip-tls">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img slider-img-over" id="slider-img-over-tls">
+                            <div class="slider-label label-left">📷 RAW PHOTO</div>
+                        </div>
+
+                        <div class="slider-label label-right" style="color: #fbbf24; border-color: #f59e0b;">⚡ TRANSLANDSEG OVERLAY</div>
+
+                        <div class="slider-divider" id="slider-divider-tls">
+                            <div class="slider-handle" style="box-shadow: 0 0 10px #f59e0b; border-color: #f59e0b;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-caption">
+                        ↔ Drag divider horizontally to slide between pristine photo and TransLandSeg landslide mask
+                    </div>
+                </div>
+
+                <!-- Segmentation Class Color Legend -->
+                <div class="cmp-legend">
+                    <span class="cmp-legend-title">CLASSES:</span>
+                    <div class="cmp-legend-badge badge-debris"><span class="cmp-badge-dot"></span> Landslide Scar / Mudslide (${lsPct}%)</div>
+                    <div class="cmp-legend-badge badge-stable"><span class="cmp-badge-dot"></span> Baseline Stable Terrain (${nonLsPct}%)</div>
+                    <div class="cmp-legend-badge" style="background: rgba(255,255,255,0.03); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); font-size: 10px;">
+                        Footprint: ${areaM2} m² &bull; Verified MD5: ${fp}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper: Render SegFormer Water and Sky Comparison Component
+    function renderSegFormerWaterBox(rawSrc, sf = {}) {
+        const maskSrc = sf.segmentation_mask_b64;
+        const waterPct = sf.flood_water_pct !== undefined ? sf.flood_water_pct : 0;
+        const waterConf = Math.round((sf.water_confidence || 0) * 100);
+        const skyPct = sf.sky_pct !== undefined ? sf.sky_pct : 0;
+        const skyConf = Math.round((sf.sky_confidence || 0) * 100);
+        const areaM2 = sf.flood_water_area_m2 || 0;
+
+        const mainConfBadge = waterPct > 0 ? `Confidence: ${waterConf}%` : `Sky Conf: ${skyConf}%`;
+
+        if (!maskSrc) {
+            return `
+                <div class="landslide-cmp-container" id="landslide-cmp-sf" style="margin-bottom: 12px; border-color: rgba(56, 189, 248, 0.35);">
+                    <div class="cmp-header">
+                        <div class="cmp-title-group">
+                            <span class="cmp-live-indicator" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                            <h4 class="cmp-title" style="color: #38bdf8;">General Scene Water Detection (SegFormer &bull; ADE20K)</h4>
+                            <span class="cmp-badge-teal">${mainConfBadge}</span>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; font-size: 11px; color: var(--text-3);">
+                        SegFormer water detector inactive or no mask generated.
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="landslide-cmp-container" id="landslide-cmp-sf" style="margin-bottom: 14px; border-color: rgba(56, 189, 248, 0.35); box-shadow: 0 8px 28px rgba(0,0,0,0.45), 0 0 16px rgba(56, 189, 248, 0.08);">
+                <div class="cmp-header">
+                    <div class="cmp-title-group">
+                        <span class="cmp-live-indicator" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                        <h4 class="cmp-title" style="color: #38bdf8;">General Scene Water Detection (SegFormer &bull; ADE20K)</h4>
+                        <span class="cmp-badge-teal">${mainConfBadge}</span>
+                    </div>
+                    <div class="cmp-controls">
+                        <!-- Mask Opacity Slider -->
+                        <div class="cmp-opacity-wrap" title="Adjust SegFormer overlay opacity">
+                            <span>Overlay:</span>
+                            <input type="range" min="15" max="100" value="80" class="cmp-opacity-slider" id="cmp-opacity-slider-sf" oninput="window.setMaskOpacity(this.value, 'sf')">
+                            <span class="cmp-opacity-num" id="cmp-opacity-val-sf">80%</span>
+                        </div>
+
+                        <!-- View Toggle Buttons -->
+                        <div class="cmp-btn-group" role="group" aria-label="Comparison View Mode">
+                            <button type="button" class="cmp-mode-btn active" id="btn-mode-side-sf" onclick="window.setCmpMode('side', 'sf')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="2"></rect><rect x="13" y="3" width="8" height="18" rx="2"></rect></svg>
+                                Side-by-Side
+                            </button>
+                            <button type="button" class="cmp-mode-btn" id="btn-mode-slider-sf" onclick="window.setCmpMode('slider', 'sf')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><polygon points="8,8 4,12 8,16"></polygon><polygon points="16,8 20,12 16,16"></polygon></svg>
+                                Split Slider
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1. Side-by-Side 2-Column Grid -->
+                <div class="cmp-grid-view" id="cmp-grid-view-sf">
+                    <!-- Raw Input Card -->
+                    <div class="cmp-card">
+                        <div class="cmp-card-tag tag-raw">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot"></span>
+                                <span>RAW FIELD PHOTO</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-gray">INPUT FRAME</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span>Orthophoto / Drone</span>
+                            <span>RGB Sensor</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Segmentation Overlay Card -->
+                    <div class="cmp-card" style="border-color: rgba(56, 189, 248, 0.3);">
+                        <div class="cmp-card-tag tag-ml">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot" style="background: #38bdf8;"></span>
+                                <span style="color: #38bdf8;">SEGFORMER SCENE DECOMPOSITION</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-cyan">ML DETECTED</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img">
+                            <img src="${maskSrc}" alt="SegFormer Water Mask" class="cmp-img-mask-overlay" id="cmp-side-mask-sf" style="opacity: 0.8;">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span class="cmp-stat-badge cyan">Water: ${waterPct}% (${waterConf}% conf)</span>
+                            <span class="cmp-stat-badge" style="color: #93c5fd; background: rgba(147, 197, 253, 0.15);">Sky: ${skyPct}% (${skyConf}% conf)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Interactive Before/After Split Slider -->
+                <div class="cmp-slider-view hidden" id="cmp-slider-view-sf">
+                    <div class="slider-viewport" id="slider-viewport-sf">
+                        <!-- Under: Raw Image + Mask Overlay -->
+                        <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img slider-img-under-base">
+                        <img src="${maskSrc}" alt="SegFormer Mask" class="cmp-img slider-img-under-mask" id="slider-under-mask-sf" style="opacity: 0.8;">
+
+                        <!-- Over (Clipped): Pure Raw Photo -->
+                        <div class="slider-overlay-clip" id="slider-overlay-clip-sf">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img slider-img-over" id="slider-img-over-sf">
+                            <div class="slider-label label-left">📷 RAW PHOTO</div>
+                        </div>
+
+                        <div class="slider-label label-right" style="color: #38bdf8; border-color: #0284c7;">⚡ SEGFORMER OVERLAY</div>
+
+                        <div class="slider-divider" id="slider-divider-sf">
+                            <div class="slider-handle" style="box-shadow: 0 0 10px #38bdf8; border-color: #38bdf8;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-caption">
+                        ↔ Drag divider horizontally to slide between pristine photo and SegFormer scene decomposition
+                    </div>
+                </div>
+
+                <!-- Segmentation Class Color Legend -->
+                <div class="cmp-legend">
+                    <span class="cmp-legend-title">CLASSES:</span>
+                    <div class="cmp-legend-badge badge-flood"><span class="cmp-badge-dot" style="background:#06b6d4;"></span> Water / Flood (${waterPct}%)</div>
+                    <div class="cmp-legend-badge" style="background: rgba(147, 197, 253, 0.15); border: 1px solid rgba(147, 197, 253, 0.35); color: #bfdbfe;"><span class="cmp-badge-dot" style="background:#93c5fd;"></span> Sky Horizon (${skyPct}%)</div>
+                    <div class="cmp-legend-badge badge-stable"><span class="cmp-badge-dot"></span> Terrestrial Baseline</div>
+                    <div class="cmp-legend-badge" style="background: rgba(255,255,255,0.03); color: #94a3b8; border: 1px solid rgba(255,255,255,0.08); font-size: 10px;">
+                        Water Footprint: ${areaM2} m² &bull; ADE20K 150-Class Transformer
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Helper: Render FloodNet Comparison Component
+    function renderFloodNetBox(rawSrc, maskSrc, hz = {}, sev = {}) {
+        if (!maskSrc) {
+            return `
+                <div class="unified-preview-strip">
+                    <div class="unified-preview-box">
+                        <img src="${rawSrc}" alt="Inspected Frame">
+                    </div>
+                    <div class="unified-meta-box">
+                        <div><strong>Flooded Inundation:</strong> <span style="color:#06b6d4; font-family:var(--mono);">${hz.flooded_pct || 0}%</span></div>
+                        <div><strong>Debris / Bare Ground:</strong> <span style="color:#d97706; font-family:var(--mono);">${hz.debris_pct || 0}%</span></div>
+                        <div><strong>Severity Priority:</strong> <span style="color:${sev.color_hex || '#F59E0B'}; font-weight:700;">${sev.badge || 'CRITICAL'}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="landslide-cmp-container" id="landslide-cmp-fnet">
+                <div class="cmp-header">
+                    <div class="cmp-title-group">
+                        <span class="cmp-live-indicator"></span>
+                        <h4 class="cmp-title">AI Flood / Debris Differential (FloodNet &bull; DeepLabV3+)</h4>
+                        <span class="cmp-badge-teal">DeepLabV3+ &bull; FloodNet Baseline</span>
+                    </div>
+                    <div class="cmp-controls">
+                        <!-- Mask Opacity Slider -->
+                        <div class="cmp-opacity-wrap" title="Adjust FloodNet segmentation overlay opacity">
+                            <span>Overlay:</span>
+                            <input type="range" min="15" max="100" value="80" class="cmp-opacity-slider" id="cmp-opacity-slider-fnet" oninput="window.setMaskOpacity(this.value, 'fnet')">
+                            <span class="cmp-opacity-num" id="cmp-opacity-val-fnet">80%</span>
+                        </div>
+
+                        <!-- View Toggle Buttons -->
+                        <div class="cmp-btn-group" role="group" aria-label="Comparison View Mode">
+                            <button type="button" class="cmp-mode-btn active" id="btn-mode-side-fnet" onclick="window.setCmpMode('side', 'fnet')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="2"></rect><rect x="13" y="3" width="8" height="18" rx="2"></rect></svg>
+                                Side-by-Side
+                            </button>
+                            <button type="button" class="cmp-mode-btn" id="btn-mode-slider-fnet" onclick="window.setCmpMode('slider', 'fnet')">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><polygon points="8,8 4,12 8,16"></polygon><polygon points="16,8 20,12 16,16"></polygon></svg>
+                                Split Slider
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1. Side-by-Side 2-Column Grid -->
+                <div class="cmp-grid-view" id="cmp-grid-view-fnet">
+                    <!-- Raw Input Card -->
+                    <div class="cmp-card">
+                        <div class="cmp-card-tag tag-raw">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot"></span>
+                                <span>RAW FIELD PHOTO</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-gray">INPUT FRAME</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span>Orthophoto / Drone</span>
+                            <span>RGB Sensor</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Segmentation Overlay Card (Blended directly onto terrain) -->
+                    <div class="cmp-card">
+                        <div class="cmp-card-tag tag-ml">
+                            <div class="cmp-tag-title">
+                                <span class="tag-dot"></span>
+                                <span>FLOODNET OVERLAY</span>
+                            </div>
+                            <span class="cmp-tag-pill pill-cyan">ML DETECTED</span>
+                        </div>
+                        <div class="cmp-media-frame">
+                            <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img">
+                            <img src="${maskSrc}" alt="FloodNet Segmentation Mask" class="cmp-img-mask-overlay" id="cmp-side-mask-fnet" style="opacity: 0.8;">
+                        </div>
+                        <div class="cmp-card-footer">
+                            <span class="cmp-stat-badge cyan">Inundated: ${hz.flooded_pct || 0}%</span>
+                            <span class="cmp-stat-badge amber">Debris: ${hz.debris_pct || 0}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Interactive Before/After Split Slider -->
+                <div class="cmp-slider-view hidden" id="cmp-slider-view-fnet">
+                    <div class="slider-viewport" id="slider-viewport-fnet">
+                        <!-- Under: Raw Image + Mask Overlay -->
+                        <img src="${rawSrc}" alt="Base Aerial Photo" class="cmp-img slider-img-under-base">
+                        <img src="${maskSrc}" alt="ML Segmentation Mask" class="cmp-img slider-img-under-mask" id="slider-under-mask-fnet" style="opacity: 0.8;">
+
+                        <!-- Over (Clipped): Pure Raw Photo -->
+                        <div class="slider-overlay-clip" id="slider-overlay-clip-fnet">
+                            <img src="${rawSrc}" alt="Raw Input Aerial Photo" class="cmp-img slider-img-over" id="slider-img-over-fnet">
+                            <div class="slider-label label-left">📷 RAW PHOTO</div>
+                        </div>
+
+                        <div class="slider-label label-right">⚡ FLOODNET OVERLAY</div>
+
+                        <div class="slider-divider" id="slider-divider-fnet">
+                            <div class="slider-handle">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slider-caption">
+                        ↔ Drag divider horizontally to slide between pristine photo and FloodNet segmentation overlay
+                    </div>
+                </div>
+
+                <!-- Segmentation Class Color Legend (Non-colliding badges) -->
+                <div class="cmp-legend">
+                    <span class="cmp-legend-title">CLASSES:</span>
+                    <div class="cmp-legend-badge badge-flood"><span class="cmp-badge-dot"></span> Flood / Inundation (${hz.flooded_pct || 0}%)</div>
+                    <div class="cmp-legend-badge badge-debris"><span class="cmp-badge-dot"></span> FloodNet Bare Debris (${hz.debris_pct || 0}%)</div>
+                    <div class="cmp-legend-badge badge-damaged"><span class="cmp-badge-dot"></span> Damaged Structure</div>
+                    <div class="cmp-legend-badge badge-stable"><span class="cmp-badge-dot"></span> Baseline Terrain</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Toggle comparison modes (supports prefix: 'tls', 'fnet', or legacy default)
+    window.setCmpMode = function(mode, prefix = 'tls') {
+        const gridView = document.getElementById(`cmp-grid-view-${prefix}`) || document.getElementById('cmp-grid-view');
+        const sliderView = document.getElementById(`cmp-slider-view-${prefix}`) || document.getElementById('cmp-slider-view');
+        const btnSide = document.getElementById(`btn-mode-side-${prefix}`) || document.getElementById('btn-mode-side');
+        const btnSlider = document.getElementById(`btn-mode-slider-${prefix}`) || document.getElementById('btn-mode-slider');
+        if (!gridView || !sliderView) return;
+
+        if (mode === 'slider') {
+            gridView.classList.add('hidden');
+            sliderView.classList.remove('hidden');
+            if (btnSlider) btnSlider.classList.add('active');
+            if (btnSide) btnSide.classList.remove('active');
+            window.initSliderSync(prefix);
+        } else {
+            sliderView.classList.add('hidden');
+            gridView.classList.remove('hidden');
+            if (btnSide) btnSide.classList.add('active');
+            if (btnSlider) btnSlider.classList.remove('active');
+        }
+    };
+
+    // Synchronize slider overlay image width with viewport
+    window.initSliderSync = function(prefix) {
+        const prefixes = prefix ? [prefix] : ['tls', 'sf', 'fnet', ''];
+        prefixes.forEach(p => {
+            const viewport = document.getElementById(p ? `slider-viewport-${p}` : 'slider-viewport');
+            const overImg = document.getElementById(p ? `slider-img-over-${p}` : 'slider-img-over');
+            if (viewport && overImg) {
+                overImg.style.width = viewport.clientWidth + 'px';
+            }
+        });
+    };
+
+    // Dynamically adjust segmentation mask opacity
+    window.setMaskOpacity = function(val, prefix = 'tls') {
+        const num = document.getElementById(prefix ? `cmp-opacity-val-${prefix}` : 'cmp-opacity-val');
+        if (num) num.textContent = `${val}%`;
+        const op = Math.max(0.1, Math.min(1.0, val / 100));
+        const sideMask = document.getElementById(prefix ? `cmp-side-mask-${prefix}` : 'cmp-side-mask');
+        if (sideMask) sideMask.style.opacity = op;
+        const sliderMask = document.getElementById(prefix ? `slider-under-mask-${prefix}` : 'slider-under-mask');
+        if (sliderMask) sliderMask.style.opacity = op;
+    };
+
+    // Attach touch and mouse listeners to the split slider
+    function attachSliderListeners(prefix = 'tls') {
+        const viewport = document.getElementById(prefix ? `slider-viewport-${prefix}` : 'slider-viewport');
+        if (!viewport || viewport.dataset.sliderAttached === 'true') return;
+        viewport.dataset.sliderAttached = 'true';
+
+        let isDragging = false;
+
+        function updateSliderPosition(clientX) {
+            const clip = document.getElementById(prefix ? `slider-overlay-clip-${prefix}` : 'slider-overlay-clip');
+            const divider = document.getElementById(prefix ? `slider-divider-${prefix}` : 'slider-divider');
+            const overImg = document.getElementById(prefix ? `slider-img-over-${prefix}` : 'slider-img-over');
+            if (!viewport || !clip || !divider) return;
+
+            const rect = viewport.getBoundingClientRect();
+            let posX = clientX - rect.left;
+            posX = Math.max(0, Math.min(posX, rect.width));
+            const pct = (posX / rect.width) * 100;
+
+            clip.style.width = `${pct}%`;
+            divider.style.left = `${pct}%`;
+            if (overImg) {
+                overImg.style.width = `${rect.width}px`;
+            }
+        }
+
+        viewport.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            updateSliderPosition(e.clientX);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            updateSliderPosition(e.clientX);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        viewport.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            if (e.touches.length > 0) updateSliderPosition(e.touches[0].clientX);
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            if (e.touches.length > 0) updateSliderPosition(e.touches[0].clientX);
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+    }
+
+    window.addEventListener('resize', () => {
+        if (window.initSliderSync) window.initSliderSync();
+    });
 
     // ── DMMC Report Modal Handlers ───────────────────────────────────────────
     window.openDMMCReportModal = function(optionalZoneId) {
