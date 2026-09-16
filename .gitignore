@@ -30,6 +30,10 @@ wheels/
 *.onnx
 *.safetensors
 *.ckpt
+*.pth.tar
+*.tar.gz
+checkpoint/
+checkpoints/
 !weights/*.pt
 !weights/*.onnx
 
