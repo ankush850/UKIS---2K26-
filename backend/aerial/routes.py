@@ -52,6 +52,7 @@ class CustomInspectionRequest(BaseModel):
     lon: Optional[float] = None
     zone_name: str = "Custom Aerial Survey"
     gsd_m: float = 0.10
+    disaster_mode: str = "auto"  # "auto", "landslide", "flood"
 
 
 class LiveStreamSourceSetRequest(BaseModel):
@@ -321,6 +322,8 @@ async def inspect_uploaded_drone_image(req: CustomInspectionRequest):
     Runs the full tactical drone pipeline on an uploaded image or pre/post pair:
     - EXIF GPS extraction + location confirmation
     - FloodNet DeepLabV3+ segmentation
+    - TransLandSeg Bijie ViT-L dedicated landslide segmentation
+    - Multi-model hazard routing (auto/landslide/flood)
     - Calibrated severity scoring
     - Road accessibility (with Overpass OSM cache, or graceful skip)
     - Building damage (single-image detection vs pre/post SiamUnet comparison)
@@ -332,7 +335,8 @@ async def inspect_uploaded_drone_image(req: CustomInspectionRequest):
         user_lat=req.lat,
         user_lon=req.lon,
         zone_name=req.zone_name,
-        gsd_m=req.gsd_m
+        gsd_m=req.gsd_m,
+        disaster_mode=req.disaster_mode
     )
 
 
