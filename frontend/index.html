@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="/static/logo.png">
     <link rel="shortcut icon" href="/static/logo.png">
     <link rel="apple-touch-icon" href="/static/logo.png">
-    <!-- Google Fonts: IBM Plex Sans + IBM Plex Mono + legacy fonts -->
+    <!-- Google Fonts: Inter + JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -1104,7 +1104,7 @@
             <div class="aerial-op-left">
                 <div class="aerial-badge-pulse">
                     <span class="pulse-orb" style="background:#ef4444;box-shadow:0 0 10px #ef4444;"></span>
-                    <span class="aerial-badge-text">DMMC DISASTER TRIAGE ACTIVE</span>
+                    <span class="aerial-badge-text">DMMC Disaster Triage Active</span>
                 </div>
                 <div class="aerial-sector-title">
                     <span id="aerial-active-sector-name">Chamoli - Rishi Ganga Flash Flood</span>
@@ -1251,88 +1251,110 @@
                     <div class="aerial-pane-content hidden" id="pane-aerial-hud">
                         <!-- HUD Source Switcher Controls -->
                         <div class="hud-source-toolbar">
-                            <span class="hud-source-title">FEED SOURCE:</span>
-                            <div class="hud-source-toggle-group">
-                                <button type="button" class="hud-source-pill active" id="btn-src-video" onclick="window.setLiveStreamSourceMode('video')">
-                                    📹 Pre-Recorded Sortie
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span class="hud-source-title">FEED SOURCE:</span>
+                                <div class="hud-source-toggle-group">
+                                    <button type="button" class="hud-source-pill active" id="btn-src-video" onclick="window.setLiveStreamSourceMode('video')">
+                                        📹 Pre-Recorded Sortie
+                                    </button>
+                                    <button type="button" class="hud-source-pill" id="btn-src-image" onclick="window.setLiveStreamSourceMode('static_image')">
+                                        📷 Simulated Flight Pass (Static Image)
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-aerial" id="btn-hud-load-static" onclick="document.getElementById('hud-static-file-input').click()" style="display:none; font-size: 11px; padding: 2px 8px;">
+                                    📂 Load Custom Aerial Photo
                                 </button>
-                                <button type="button" class="hud-source-pill" id="btn-src-image" onclick="window.setLiveStreamSourceMode('static_image')">
-                                    📷 Simulated Flight Pass (Static Image)
-                                </button>
+                                <input type="file" id="hud-static-file-input" accept="image/*" style="display:none;" onchange="window.handleHudStaticImageSelected(event)">
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-aerial" id="btn-hud-load-static" onclick="document.getElementById('hud-static-file-input').click()" style="display:none; font-size: 11px; padding: 2px 8px;">
-                                📂 Load Custom Aerial Photo
-                            </button>
-                            <input type="file" id="hud-static-file-input" accept="image/*" style="display:none;" onchange="window.handleHudStaticImageSelected(event)">
+
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span class="hud-source-title">COLOR MODE:</span>
+                                <div class="hud-source-toggle-group">
+                                    <button type="button" class="hud-source-pill active" id="btn-mode-hazard-only" onclick="window.setHudOverlayMode('hazard_only')" title="Real camera color — only changes color where Landslide & Flood hazards are detected">
+                                        🎯 Real Color + Disaster Hazards
+                                    </button>
+                                    <button type="button" class="hud-source-pill" id="btn-mode-full-semantic" onclick="window.setHudOverlayMode('full_semantic')" title="Full semantic multi-class color mask">
+                                        🗺️ Full Semantic
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="drone-hud-viewport">
-                            <div class="drone-hud-frame-wrap" id="drone-hud-wrap">
-                                <!-- Drone Video / Frame Canvas -->
-                                <img id="hud-frame-image" src="" alt="Live Drone Video Stream" class="hud-video-frame">
-                                <img id="hud-overlay-image" src="" alt="Live Segmentation Overlay" class="hud-segmentation-overlay">
+                        <div class="drone-stream-card" role="region" aria-label="Live Tactical Drone Flight Video Stream">
+                            <div class="drone-hud-viewport">
+                                <div class="drone-hud-frame-wrap" id="drone-hud-wrap">
+                                    <!-- Drone Video / Frame Canvas -->
+                                    <img id="hud-frame-image" src="" alt="Live Drone Video Stream" class="hud-video-frame">
+                                    <img id="hud-overlay-image" src="" alt="Live Segmentation Overlay" class="hud-segmentation-overlay">
 
-                                <!-- Avionics HUD OSD Overlay -->
-                                <div class="hud-osd-overlay">
-                                    <!-- Top Honesty Badge (Distinct per mode) -->
-                                    <div class="hud-stream-honesty-badge" id="hud-honesty-badge" title="Simulation honesty indicator">
-                                        <span class="pulse-dot-amber">●</span> <span id="hud-honesty-badge-text">PRE-RECORDED SORTIE STREAMED FRAME-BY-FRAME VIA REAL PYTORCH PIPELINE</span>
-                                    </div>
-
-                                    <!-- Top Bar -->
-                                    <div class="hud-osd-top">
-                                        <div class="hud-stat-box">
-                                            <span class="hud-lbl">MODE</span>
-                                            <span class="hud-val" id="hud-flight-mode">AUTONOMOUS SURVEY</span>
+                                    <!-- Avionics HUD OSD Overlay -->
+                                    <div class="hud-osd-overlay">
+                                        <!-- Top Honesty Badge (Distinct per mode) -->
+                                        <div class="hud-stream-honesty-badge" id="hud-honesty-badge" title="Simulation honesty indicator">
+                                            <span class="pulse-dot-amber">●</span> <span id="hud-honesty-badge-text">Pre-recorded sortie streamed frame-by-frame via real PyTorch pipeline</span>
                                         </div>
-                                        <div class="hud-heading-tape">
-                                            <span>HDG</span> <span id="hud-heading">145°</span>
+
+                                        <!-- Top Bar -->
+                                        <div class="hud-osd-top">
+                                            <div class="hud-stat-box">
+                                                <span class="hud-lbl">MODE</span>
+                                                <span class="hud-val" id="hud-flight-mode">AUTONOMOUS SURVEY</span>
+                                            </div>
+                                            <div class="hud-heading-tape">
+                                                <span>HDG</span> <span id="hud-heading">145°</span>
+                                            </div>
+                                            <div class="hud-stat-box">
+                                                <span class="hud-lbl">BATTERY</span>
+                                                <span class="hud-val green" id="hud-battery">84%</span>
+                                            </div>
                                         </div>
-                                        <div class="hud-stat-box">
-                                            <span class="hud-lbl">BATTERY</span>
-                                            <span class="hud-val green" id="hud-battery">84%</span>
+
+                                        <!-- Artificial Horizon Crosshairs -->
+                                        <div class="hud-crosshairs">
+                                            <div class="hud-horizon-line" id="hud-horizon"></div>
+                                            <div class="hud-pitch-ladder"></div>
+                                            <div class="hud-reticle"></div>
                                         </div>
-                                    </div>
 
-                                    <!-- Artificial Horizon Crosshairs -->
-                                    <div class="hud-crosshairs">
-                                        <div class="hud-horizon-line" id="hud-horizon"></div>
-                                        <div class="hud-pitch-ladder"></div>
-                                        <div class="hud-reticle"></div>
-                                    </div>
+                                        <!-- Side Tapes -->
+                                        <div class="hud-speed-tape">
+                                            <span class="hud-lbl">AIRSPEED</span>
+                                            <span class="hud-tape-val" id="hud-speed">14.2 m/s</span>
+                                            <span class="hud-tape-unit">51.1 km/h</span>
+                                        </div>
 
-                                    <!-- Side Tapes -->
-                                    <div class="hud-speed-tape">
-                                        <span class="hud-lbl">AIRSPEED</span>
-                                        <span class="hud-tape-val" id="hud-speed">14.2 m/s</span>
-                                        <span class="hud-tape-unit">51.1 km/h</span>
-                                    </div>
+                                        <div class="hud-alt-tape">
+                                            <span class="hud-lbl">ALTITUDE</span>
+                                            <span class="hud-tape-val" id="hud-alt">120.4 m</span>
+                                            <span class="hud-tape-unit">AGL (GPS LOCK)</span>
+                                        </div>
 
-                                    <div class="hud-alt-tape">
-                                        <span class="hud-lbl">ALTITUDE</span>
-                                        <span class="hud-tape-val" id="hud-alt">120.4 m</span>
-                                        <span class="hud-tape-unit">AGL (GPS LOCK)</span>
-                                    </div>
-
-                                    <!-- Bottom Bar -->
-                                    <div class="hud-osd-bottom">
-                                        <div class="hud-coords" id="hud-coords">30.4850° N, 79.5450° E</div>
-                                        <div class="hud-live-hazards">
-                                            <span class="hazard-badge-live" id="hud-hazard-flood">🌊 Inundated: 32.4%</span>
-                                            <span class="hazard-badge-live" id="hud-hazard-debris">⛰️ Debris: 21.8%</span>
-                                            <span class="hazard-badge-live" id="hud-hazard-bldg">🏚️ Damaged: 14.5%</span>
+                                        <!-- Bottom Bar -->
+                                        <div class="hud-osd-bottom">
+                                            <div class="hud-coords" id="hud-coords">30.4850° N, 79.5450° E</div>
+                                            <div class="hud-hazard-legend" id="hud-hazard-legend" title="Active color indicators">
+                                                <span class="legend-item"><span class="legend-dot-cyan">●</span> Flood</span>
+                                                <span class="legend-item"><span class="legend-dot-amber">●</span> Landslide</span>
+                                                <span class="legend-item"><span class="legend-dot-real">●</span> Real Color (Safe)</span>
+                                            </div>
+                                            <div class="hud-live-hazards">
+                                                <span class="hazard-badge-live" id="hud-hazard-flood">🌊 Inundated: 32.4%</span>
+                                                <span class="hazard-badge-live" id="hud-hazard-debris">⛰️ Debris: 21.8%</span>
+                                                <span class="hazard-badge-live" id="hud-hazard-bldg">🏚️ Damaged: 14.5%</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- HUD Playback Controls Strip -->
-                            <div class="hud-playback-controls">
-                                <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-play" onclick="window.hudPlay()">▶ Play</button>
-                                <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-pause" onclick="window.hudPause()">⏸ Pause</button>
-                                <input type="range" id="hud-scrubber" min="0" max="59" value="0" class="hud-scrubber" oninput="window.hudSeek(this.value)">
-                                <button type="button" class="btn btn-sm btn-outline" id="btn-hud-speed" onclick="window.hudCycleSpeed()">1.0x</button>
-                                <button type="button" class="btn btn-sm btn-outline" id="btn-hud-fullscreen" onclick="window.hudToggleFullscreen()">⛶ Fullscreen</button>
+                                <!-- HUD Playback Controls Strip -->
+                                <div class="hud-playback-controls" aria-label="Drone Flight Controls">
+                                    <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-play" onclick="window.hudPlay()" aria-label="Play Drone Flight Stream">▶ Play</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" id="btn-hud-pause" onclick="window.hudPause()" aria-label="Pause Drone Flight Stream">⏸ Pause</button>
+                                    <input type="range" id="hud-scrubber" min="0" max="59" value="0" class="hud-scrubber" aria-label="Sortie Frame Scrubber" oninput="window.hudSeek(this.value)">
+                                    <button type="button" class="btn btn-sm btn-outline" id="btn-hud-speed" onclick="window.hudCycleSpeed()" aria-label="Playback Speed">1.0x</button>
+                                    <button type="button" class="btn btn-sm btn-outline-aerial active" id="btn-hud-toggle-overlay" onclick="window.toggleHudOverlayBtn()" aria-label="Toggle Hazard Highlights" title="Toggle Landslide and Flood Color Highlights">🚨 Hazard Highlights: ON</button>
+                                    <button type="button" class="btn btn-sm btn-outline" id="btn-hud-fullscreen" onclick="window.hudToggleFullscreen()" aria-label="Toggle Fullscreen">⛶ Fullscreen</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1381,9 +1403,9 @@
 
                     <!-- Geolocation / Sector Confirmation Helper -->
                     <div class="custom-geo-helper" style="margin-top: 10px;">
-                        <label style="font-size: 0.72rem; color: var(--text-2); display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span>GEOLOCATION (FOR ROAD ACCESSIBILITY)</span>
-                            <span id="geo-source-label" style="color: #38bdf8; font-family: var(--mono); font-size: 0.7rem;">Auto-Detect EXIF</span>
+                        <label class="form-label-row">
+                            <span>Geolocation (Road Accessibility)</span>
+                            <span id="geo-source-label" class="label-badge-cyan">Auto-Detect EXIF</span>
                         </label>
                         <select id="custom-sector-select" class="config-select custom-sector-select-constrained" onchange="window.onCustomSectorChanged(this.value)">
                             <option value="auto">Auto-detect GPS from image EXIF</option>
@@ -1397,9 +1419,9 @@
 
                     <!-- Hazard Scenario / Routing Mode Selector -->
                     <div class="custom-geo-helper" style="margin-top: 10px;">
-                        <label style="font-size: 0.72rem; color: var(--text-2); display: flex; justify-content: space-between; margin-bottom: 4px;">
-                            <span>HAZARD ROUTING PIPELINE</span>
-                            <span id="routing-mode-label" style="color: #a855f7; font-family: var(--mono); font-size: 0.7rem;">Dual-Model AI</span>
+                        <label class="form-label-row">
+                            <span>Hazard Routing Pipeline</span>
+                            <span id="routing-mode-label" class="label-badge-purple">Dual-Model AI</span>
                         </label>
                         <select id="custom-disaster-mode" class="config-select custom-sector-select-constrained">
                             <option value="auto">Auto-detect Hazard (Dual: FloodNet + TransLandSeg)</option>
@@ -1408,10 +1430,12 @@
                         </select>
                     </div>
 
-                    <button type="button" class="btn btn-primary-aerial btn-block-mt" id="btn-run-full-inspection" onclick="window.submitFullCustomInspection()" style="width: 100%; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        <span>Run Full Drone Pipeline</span>
-                    </button>
+                    <div class="custom-action-row">
+                        <button type="button" class="btn btn-primary-aerial btn-action-cta" id="btn-run-full-inspection" onclick="window.submitFullCustomInspection()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span>Run Full Drone Pipeline</span>
+                        </button>
+                    </div>
 
                     <!-- Unified Inspection Result Panel (Renders directly under upload box) -->
                     <div id="unified-inspection-result-panel" class="unified-result-panel hidden">
@@ -1428,7 +1452,7 @@
                             </svg>
                             Disaster Verification Delta
                         </h3>
-                        <span class="card-badge" id="aerial-zone-badge">FUSED CONFIRMED</span>
+                        <span class="card-badge card-badge-cyan" id="aerial-zone-badge">STATIC SENSOR FUSION</span>
                     </div>
                     <p class="panel-desc">Multi-sensor cross-validation resolving satellite uncertainty via tactical drone sortie.</p>
                     <div class="triage-status-banner" id="aerial-triage-banner">

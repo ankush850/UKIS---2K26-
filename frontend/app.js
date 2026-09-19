@@ -618,10 +618,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const bounds = layer.getBounds();
         const bbox = [
-            parseFloat(bounds.getWest().toFixed(4)),
-            parseFloat(bounds.getSouth().toFixed(4)),
-            parseFloat(bounds.getEast().toFixed(4)),
-            parseFloat(bounds.getNorth().toFixed(4))
+            parseFloat(bounds.getWest().toFixed(5)),
+            parseFloat(bounds.getSouth().toFixed(5)),
+            parseFloat(bounds.getEast().toFixed(5)),
+            parseFloat(bounds.getNorth().toFixed(5))
         ];
 
         state.activeBbox = bbox;
@@ -636,10 +636,10 @@ document.addEventListener("DOMContentLoaded", () => {
         layers.eachLayer(function (layer) {
             const bounds = layer.getBounds();
             const bbox = [
-                parseFloat(bounds.getWest().toFixed(4)),
-                parseFloat(bounds.getSouth().toFixed(4)),
-                parseFloat(bounds.getEast().toFixed(4)),
-                parseFloat(bounds.getNorth().toFixed(4))
+                parseFloat(bounds.getWest().toFixed(5)),
+                parseFloat(bounds.getSouth().toFixed(5)),
+                parseFloat(bounds.getEast().toFixed(5)),
+                parseFloat(bounds.getNorth().toFixed(5))
             ];
             state.activeBbox = bbox;
             state.activePreset = "custom_drawn_aoi";
@@ -837,7 +837,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({
                     bbox: bbox,
                     aoi_id: aoiId,
-                    max_cloud: 20
+                    max_cloud: 20,
+                    force_live: true
                 })
             });
             const data = await res.json();
@@ -858,10 +859,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 loadViewerImage(viewerLR, data.lr_preview);
                 loadViewerImage(viewerSideLR, data.lr_preview);
 
-                // Update 1st Side-by-Side Panel Header
+                // Update 1st Side-by-Side Panel Header with Live Satellite indicator
                 const headerSideLr = document.getElementById("header-side-lr");
                 if (headerSideLr) {
-                    headerSideLr.innerText = "Input: Sentinel-2 L2A (10m)";
+                    if (data.is_live) {
+                        headerSideLr.innerHTML = 'Input: Sentinel-2 L2A (10m) <span style="font-size:11px;color:#34d399;font-weight:700;margin-left:6px;background:rgba(52,211,153,0.15);padding:2px 6px;border-radius:4px;border:1px solid rgba(52,211,153,0.4);">● LIVE ESA CDSE</span>';
+                    } else {
+                        headerSideLr.innerText = "Input: Sentinel-2 L2A (10m)";
+                    }
                 }
 
                 // Update 3rd Side-by-Side Panel Header strictly per tier rules
@@ -907,11 +912,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Trigger PyTorch Super-Resolution
                 await runSuperResolution(fetchSeq);
             } else {
-                showInAppNotification(`Fetch error: ${data.detail || 'Could not load tile'}`, "❌", "warning", 7000);
+                showInAppNotification(`Fetch error: ${data.detail || 'Could not load live satellite tile'}`, "❌", "warning", 7000);
             }
         } catch (err) {
             if (fetchSeq === currentFetchSeq) {
                 console.error("[GEO-SRM] Fetch tile failed:", err);
+                showInAppNotification("Live satellite stream error. Check network or coordinates.", "⚠️", "warning", 6000);
             }
         } finally {
             if (fetchSeq === currentFetchSeq) {
@@ -1802,10 +1808,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const bounds = layer.getBounds();
             const bbox = [
-                parseFloat(bounds.getWest().toFixed(4)),
-                parseFloat(bounds.getSouth().toFixed(4)),
-                parseFloat(bounds.getEast().toFixed(4)),
-                parseFloat(bounds.getNorth().toFixed(4))
+                parseFloat(bounds.getWest().toFixed(5)),
+                parseFloat(bounds.getSouth().toFixed(5)),
+                parseFloat(bounds.getEast().toFixed(5)),
+                parseFloat(bounds.getNorth().toFixed(5))
             ];
 
             state.activeBbox = bbox;
@@ -1820,10 +1826,10 @@ document.addEventListener("DOMContentLoaded", () => {
             layers.eachLayer(function (layer) {
                 const bounds = layer.getBounds();
                 const bbox = [
-                    parseFloat(bounds.getWest().toFixed(4)),
-                    parseFloat(bounds.getSouth().toFixed(4)),
-                    parseFloat(bounds.getEast().toFixed(4)),
-                    parseFloat(bounds.getNorth().toFixed(4))
+                    parseFloat(bounds.getWest().toFixed(5)),
+                    parseFloat(bounds.getSouth().toFixed(5)),
+                    parseFloat(bounds.getEast().toFixed(5)),
+                    parseFloat(bounds.getNorth().toFixed(5))
                 ];
                 state.activeBbox = bbox;
                 state.activePreset = "custom_drawn_aoi";
@@ -2331,7 +2337,8 @@ document.addEventListener("DOMContentLoaded", () => {
         customPostImageB64: null,
         customPreImageB64: null,
         customInspectionResult: null,
-        streamSourceMode: "video" // "video" or "static_image"
+        streamSourceMode: "video", // "video" or "static_image"
+        hudOverlayMode: "hazard_only" // "hazard_only" (real drone color + hazard highlights) or "full_semantic"
     };
 
     function initAerialMap() {
@@ -2389,12 +2396,14 @@ document.addEventListener("DOMContentLoaded", () => {
             card.onclick = () => selectAerialPreset(p.id);
 
             const sevLevel = p.severity?.level || "HIGH";
-            const badgeClass = sevLevel === "HIGH" ? "high" : "medium";
+            const sevLower = sevLevel.toLowerCase();
+            const statusLabel = p.status === "satellite_only" ? "Unverified" : (sevLevel === "HIGH" ? "High Priority" : "Moderate");
 
+            card.className = `aerial-preset-card severity-${sevLower} ${p.id === aerialState.activePresetId ? "active" : ""}`;
             card.innerHTML = `
                 <div class="preset-card-head">
                     <span class="preset-card-title">${p.title}</span>
-                    <span class="preset-card-badge ${badgeClass}">${p.status === "satellite_only" ? "UNVERIFIED" : sevLevel}</span>
+                    <span class="preset-status-text ${sevLower}">${statusLabel}</span>
                 </div>
                 <div class="preset-card-desc">${p.description}</div>
             `;
@@ -2858,6 +2867,13 @@ document.addEventListener("DOMContentLoaded", () => {
             overlayImg.src = data.overlay_b64;
             overlayImg.style.opacity = aerialState.showHudOverlay ? "1.0" : "0.0";
         }
+        if (data.overlay_mode && data.overlay_mode !== aerialState.hudOverlayMode) {
+            aerialState.hudOverlayMode = data.overlay_mode;
+            const btnHazard = document.getElementById("btn-mode-hazard-only");
+            const btnFull = document.getElementById("btn-mode-full-semantic");
+            if (btnHazard) btnHazard.classList.toggle("active", data.overlay_mode === "hazard_only");
+            if (btnFull) btnFull.classList.toggle("active", data.overlay_mode === "full_semantic");
+        }
 
         const tele = data.telemetry || {};
         const hz = data.hazard_summary || {};
@@ -2940,6 +2956,34 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    window.setHudOverlayMode = function(mode) {
+        aerialState.hudOverlayMode = mode;
+        const btnHazard = document.getElementById("btn-mode-hazard-only");
+        const btnFull = document.getElementById("btn-mode-full-semantic");
+        if (btnHazard) btnHazard.classList.toggle("active", mode === "hazard_only");
+        if (btnFull) btnFull.classList.toggle("active", mode === "full_semantic");
+
+        if (aerialState.ws && aerialState.ws.readyState === WebSocket.OPEN) {
+            aerialState.ws.send(JSON.stringify({ action: "set_overlay_mode", mode: mode }));
+        }
+        console.log(`[NetraAerial] HUD overlay mode set to: ${mode}`);
+    };
+
+    window.toggleHudOverlayBtn = function() {
+        const nextState = !aerialState.showHudOverlay;
+        window.toggleHudOverlay(nextState);
+        const btn = document.getElementById("btn-hud-toggle-overlay");
+        if (btn) {
+            if (nextState) {
+                btn.className = "btn btn-sm btn-outline-aerial active";
+                btn.textContent = "🚨 Hazard Highlights: ON";
+            } else {
+                btn.className = "btn btn-sm btn-outline muted";
+                btn.textContent = "📷 Real Camera Only (Clean)";
+            }
+        }
+    };
+
     window.toggleHudOverlay = function(checked) {
         aerialState.showHudOverlay = checked;
         const overlayImg = document.getElementById("hud-overlay-image");
@@ -2964,7 +3008,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (loadCustomBtn) loadCustomBtn.style.display = "inline-flex";
 
             if (honestyBadgeEl) honestyBadgeEl.classList.add("static-mode");
-            if (honestyTextEl) honestyTextEl.textContent = "SIMULATED FLIGHT PASS OVER STATIC IMAGE — SYNTHETIC MOTION, REAL PYTORCH INFERENCE PER FRAME";
+            if (honestyTextEl) honestyTextEl.textContent = "Simulated flight pass over static image — synthetic motion, real PyTorch inference per frame";
 
             // If user has uploaded an image, use it; otherwise request backend to use demo frame
             const imgToSend = aerialState.customPostImageB64 || null;
@@ -2986,7 +3030,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (loadCustomBtn) loadCustomBtn.style.display = "none";
 
             if (honestyBadgeEl) honestyBadgeEl.classList.remove("static-mode");
-            if (honestyTextEl) honestyTextEl.textContent = "PRE-RECORDED SORTIE STREAMED FRAME-BY-FRAME VIA REAL PYTORCH PIPELINE";
+            if (honestyTextEl) honestyTextEl.textContent = "Pre-recorded sortie streamed frame-by-frame via real PyTorch pipeline";
 
             try {
                 await fetch("/api/aerial/live-stream/set-source", {

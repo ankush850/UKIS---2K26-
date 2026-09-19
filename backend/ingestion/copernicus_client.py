@@ -16,18 +16,12 @@ import numpy as np
 import tifffile
 import io
 
+import math
 from datetime import datetime
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / ".env")
-
-CACHE_DIR = BASE_DIR / "cache" / "tiles"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-# Dedicated directory for permanently saving fetched raw Sentinel-2 tiles
-SAVED_TILES_DIR = BASE_DIR / "saved_tiles"
-SAVED_TILES_DIR.mkdir(parents=True, exist_ok=True)
 
 class CopernicusClient:
     """
@@ -105,13 +99,13 @@ function evaluatePixel(sample) {
         self._token_expiry = 0
 
     def _get_access_token(self) -> str:
-        """Acquires or refreshes OAuth2 token from CDSE."""
-        if self._access_token and time.time() < self._token_expiry - 60:
+        """Retrieves or refreshes OAuth2 token using CDSE Identity provider."""
+        if self._access_token and time.time() < (self._token_expiry - 60):
             return self._access_token
 
         if not self.client_id or not self.client_secret:
-            raise ValueError(
-                "Missing Copernicus credentials. Please configure SH_CLIENT_ID and SH_CLIENT_SECRET in .env"
+            raise RuntimeError(
+                "Missing Copernicus CDSE credentials. Set SH_CLIENT_ID and SH_CLIENT_SECRET in .env"
             )
 
         resp = requests.post(
@@ -121,6 +115,7 @@ function evaluatePixel(sample) {
                 "client_id": self.client_id,
                 "client_secret": self.client_secret
             },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
             timeout=15
         )
         if resp.status_code != 200:
@@ -133,7 +128,11 @@ function evaluatePixel(sample) {
         return self._access_token
 
     def sanitize_bbox(self, bbox: list) -> list:
-        """Sanitizes and enforces minimum AOI span (~3km) for robust Sentinel-2 fetching."""
+        """
+        Sanitizes and normalizes bounding box [min_lon, min_lat, max_lon, max_lat].
+        Ensures valid coordinate ordering and guards against degenerate zero-span points (< 0.0005 deg / ~55m).
+        Strictly preserves the user's exact drawn AOI boundary without inflating it.
+        """
         try:
             if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
                 return [75.30, 30.55, 75.36, 30.60]
@@ -144,13 +143,14 @@ function evaluatePixel(sample) {
                 min_lat, max_lat = max_lat, min_lat
             lon_span = max_lon - min_lon
             lat_span = max_lat - min_lat
-            if lon_span < 0.01:
+            # Guard only against degenerate points or lines (< 0.0005 deg ~ 55m)
+            if lon_span < 0.0005:
                 mid = (min_lon + max_lon) / 2.0
-                min_lon, max_lon = mid - 0.015, mid + 0.015
-            if lat_span < 0.01:
+                min_lon, max_lon = mid - 0.0005, mid + 0.0005
+            if lat_span < 0.0005:
                 mid = (min_lat + max_lat) / 2.0
-                min_lat, max_lat = mid - 0.015, mid + 0.015
-            return [round(min_lon, 4), round(min_lat, 4), round(max_lon, 4), round(max_lat, 4)]
+                min_lat, max_lat = mid - 0.0005, mid + 0.0005
+            return [round(min_lon, 5), round(min_lat, 5), round(max_lon, 5), round(max_lat, 5)]
         except Exception:
             return [75.30, 30.55, 75.36, 30.60]
 
@@ -167,36 +167,13 @@ function evaluatePixel(sample) {
         max_cloud: int = 20,
         preset_id: str = None,
         retries: int = 3,
-        use_cache: bool = True
+        use_cache: bool = False
     ) -> tuple[np.ndarray, dict]:
         """
         Fetches real Sentinel-2 L2A tile for a given bounding box directly from live CDSE Process API.
-        Saves all fetched tiles to disk (cache/tiles/ and saved_tiles/) for fast instant reloading.
-        Checks disk cache first (use_cache=True) to eliminate lag when switching presets or re-visiting locations.
+        Operates 100% in-memory with zero disk caching or file writing.
+        Preserves true geographic aspect ratio of the bounding box.
         """
-        cache_key = hashlib.md5(f"{bbox_coords}-{time_window}-{max_cloud}".encode()).hexdigest()
-        cache_path = CACHE_DIR / f"{cache_key}.npy"
-        meta_path = CACHE_DIR / f"{cache_key}.json"
-
-        # Check disk cache first for instantaneous loading
-        if use_cache:
-            if cache_path.exists() and meta_path.exists():
-                arr = np.load(cache_path)
-                with open(meta_path, "r") as f:
-                    meta = json.load(f)
-                meta["source"] = "disk_cache (Copernicus CDSE L2A)"
-                return arr, meta
-
-            if preset_id:
-                pre_cached = CACHE_DIR / f"{preset_id}_real.npy"
-                pre_meta = CACHE_DIR / f"{preset_id}_real.json"
-                if pre_cached.exists() and pre_meta.exists():
-                    arr = np.load(pre_cached)
-                    with open(pre_meta, "r") as f:
-                        meta = json.load(f)
-                    meta["source"] = "disk_cache (Copernicus CDSE L2A)"
-                    return arr, meta
-
         # Live CDSE Process API Request
         token = self._get_access_token()
         headers = {
@@ -204,6 +181,25 @@ function evaluatePixel(sample) {
             "Content-Type": "application/json",
             "Accept": "image/tiff"
         }
+
+        # Dynamically compute width and height preserving real-world aspect ratio
+        min_lon, min_lat, max_lon, max_lat = bbox_coords
+        mid_lat = (min_lat + max_lat) / 2.0
+        dx_m = max(1.0, abs(max_lon - min_lon) * 111320.0 * math.cos(math.radians(mid_lat)))
+        dy_m = max(1.0, abs(max_lat - min_lat) * 111320.0)
+        aspect = dx_m / dy_m
+
+        base_dim = 128
+        if aspect >= 1.0:
+            out_w = base_dim
+            out_h = max(32, min(512, int(round(base_dim / aspect))))
+        else:
+            out_h = base_dim
+            out_w = max(32, min(512, int(round(base_dim * aspect))))
+
+        # Keep dimensions as multiples of 4 for CNN & 4x scaling
+        out_w = max(32, (out_w // 4) * 4)
+        out_h = max(32, (out_h // 4) * 4)
 
         payload = {
             "input": {
@@ -218,13 +214,14 @@ function evaluatePixel(sample) {
                             "from": f"{time_window[0]}T00:00:00Z",
                             "to": f"{time_window[1]}T23:59:59Z"
                         },
-                        "maxCloudCoverage": max_cloud
+                        "maxCloudCoverage": max_cloud,
+                        "mosaickingOrder": "leastCC"
                     }
                 }]
             },
             "output": {
-                "width": 128,
-                "height": 128,
+                "width": out_w,
+                "height": out_h,
                 "responses": [{
                     "identifier": "default",
                     "format": {"type": "image/tiff"}
@@ -233,6 +230,8 @@ function evaluatePixel(sample) {
             "evalscript": self.EVALSCRIPT
         }
 
+        arr = None
+        meta = None
         for attempt in range(1, retries + 1):
             try:
                 resp = requests.post(self.process_url, json=payload, headers=headers, timeout=35)
@@ -241,8 +240,6 @@ function evaluatePixel(sample) {
                     arr = np.clip(raw_arr.astype(np.float32), 0.0, 1.0)
 
                     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    tile_name = f"{preset_id or 'sentinel2'}_{cache_key[:8]}_{timestamp_str}"
-
                     meta = {
                         "source": "live_copernicus_cdse",
                         "bbox": bbox_coords,
@@ -257,50 +254,15 @@ function evaluatePixel(sample) {
                         "resolution": "10m GSD",
                         "timestamp": timestamp_str
                     }
-
-                    # Save to saved_tiles/ on disk for archival records (Never read/used by project)
-                    saved_npy = SAVED_TILES_DIR / f"{tile_name}.npy"
-                    saved_meta = SAVED_TILES_DIR / f"{tile_name}.json"
-                    saved_png = SAVED_TILES_DIR / f"{tile_name}.png"
-
-                    np.save(saved_npy, arr)
-                    with open(saved_meta, "w") as f:
-                        json.dump(meta, f, indent=2)
-
-                    try:
-                        from PIL import Image
-                        from backend.spectral.spectral_indices import convert_bands_to_display_rgb
-                        rgb_vis = (convert_bands_to_display_rgb(arr) * 255.0).astype(np.uint8)
-                        Image.fromarray(rgb_vis).save(saved_png)
-                    except Exception as img_err:
-                        pass
-
-                    print(f"\n[CopernicusClient] ================= TILE SAVED TO DISK =================")
-                    print(f"[CopernicusClient] Archival NPY:  {saved_npy}")
-                    print(f"[CopernicusClient] Archival PNG:  {saved_png}")
-                    print(f"[CopernicusClient] Policy Notice: Tile saved to disk but NEVER read back or used in project.")
-                    print(f"[CopernicusClient] =====================================================\n")
-
-                    # Also update cache_path for emergency offline fallback
-                    np.save(cache_path, arr)
-                    with open(meta_path, "w") as f:
-                        json.dump(meta, f, indent=2)
+                    print(f"[CopernicusClient] Live stream complete: {arr.shape} in-memory array (0 disk files written)")
                     break
             except Exception as e:
                 print(f"[CopernicusClient] Live fetch attempt {attempt} failed: {e}")
                 if attempt == retries:
-                    # Emergency offline fallback if internet down
-                    if cache_path.exists():
-                        print("[CopernicusClient] Network failed. Loading emergency offline tile.")
-                        arr = np.load(cache_path)
-                        meta = {"source": "emergency_offline_fallback", "bbox": bbox_coords}
-                        break
-                    elif preset_id and (CACHE_DIR / f"{preset_id}_real.npy").exists():
-                        print("[CopernicusClient] Network failed. Loading emergency preset tile.")
-                        arr = np.load(CACHE_DIR / f"{preset_id}_real.npy")
-                        meta = {"source": "emergency_offline_fallback", "bbox": bbox_coords}
-                        break
-                    raise
+                    raise RuntimeError(f"Live Copernicus CDSE request failed after {retries} attempts: {e}")
+
+        if arr is None:
+            raise RuntimeError(f"Copernicus CDSE returned empty response for bbox {bbox_coords}")
 
         # Compute cloud mask and telemetry
         try:
@@ -342,17 +304,6 @@ function evaluatePixel(sample) {
         Fetches 3 distinct revisit Sentinel-2 acquisitions within the time window and fuses them
         via temporal median. Eliminates transient cloud puffs, atmospheric haze, and boosts SNR (+0.08 to +0.68 dB PSNR).
         """
-        cache_key = hashlib.md5(f"multi-{bbox_coords}-{time_window}".encode()).hexdigest()
-        cache_path = CACHE_DIR / f"{preset_id or cache_key}_multitemporal_fused.npy"
-        meta_path = CACHE_DIR / f"{preset_id or cache_key}_multitemporal_fused.json"
-
-        if cache_path.exists() and meta_path.exists():
-            arr = np.load(cache_path)
-            with open(meta_path, "r") as f:
-                meta = json.load(f)
-            print(f"[CopernicusClient] Loaded cached multi-temporal fused tile for '{preset_id or cache_key}'")
-            return arr, meta
-
         # Split time window into sequential sub-intervals (~10-15 days each) to capture 3 separate revisits
         from datetime import datetime, timedelta
         t_start = datetime.strptime(time_window[0], "%Y-%m-%d")
@@ -390,7 +341,8 @@ function evaluatePixel(sample) {
                                 "from": f"{w[0]}T00:00:00Z",
                                 "to": f"{w[1]}T23:59:59Z"
                             },
-                            "maxCloudCoverage": max_cloud
+                            "maxCloudCoverage": max_cloud,
+                            "mosaickingOrder": "leastCC"
                         }
                     }]
                 },
@@ -437,12 +389,7 @@ function evaluatePixel(sample) {
             "fusion_method": "Pixel-Wise Temporal Median (Cloud/Haze Rejection)"
         }
 
-        # Cache fused result to disk
-        np.save(cache_path, fused_arr)
-        with open(meta_path, "w") as f:
-            json.dump(meta, f, indent=2)
-
-        print(f"[CopernicusClient] Successfully fused {len(valid_passes)} passes. Saved to {cache_path.name}")
+        print(f"[CopernicusClient] Successfully fused {len(valid_passes)} passes in memory (0 disk files written).")
         return fused_arr, meta
 
     @staticmethod

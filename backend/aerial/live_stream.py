@@ -27,8 +27,8 @@ class DroneLiveStreamSimulator:
     runs real-time PyTorch multi-class segmentation per frame, and transmits flight telemetry.
     """
     HONESTY_BADGES = {
-        "video": "PRE-RECORDED SORTIE STREAMED FRAME-BY-FRAME VIA REAL PYTORCH PIPELINE",
-        "static_image": "SIMULATED FLIGHT PASS OVER STATIC IMAGE — SYNTHETIC MOTION, REAL PYTORCH INFERENCE PER FRAME"
+        "video": "Pre-recorded sortie streamed frame-by-frame via real PyTorch pipeline",
+        "static_image": "Simulated flight pass over static image — synthetic motion, real PyTorch inference per frame"
     }
 
     def __init__(self):
@@ -173,6 +173,7 @@ class DroneLiveStreamSimulator:
         current_frame = 0
         speed_multiplier = 1.0
         send_overlay = True
+        overlay_mode = "hazard_only"
 
         try:
             while True:
@@ -191,6 +192,8 @@ class DroneLiveStreamSimulator:
                         speed_multiplier = max(0.25, min(float(cmd.get("value", 1.0)), 4.0))
                     elif action == "toggle_overlay":
                         send_overlay = bool(cmd.get("value", True))
+                    elif action == "set_overlay_mode":
+                        overlay_mode = cmd.get("mode", "hazard_only")
                     elif action == "set_source":
                         src = cmd.get("source_type", "video")
                         if src == "static_image" and "image_b64" in cmd:
@@ -206,8 +209,12 @@ class DroneLiveStreamSimulator:
                     current_frame = current_frame % len(self._cached_frames)
                     frame_img = self._cached_frames[current_frame]
                     
-                    # Run REAL PyTorch segmentation on the live frame
-                    seg_result = drone_segmentation_engine.segment(frame_img, gsd_m=0.10)
+                    # Run REAL PyTorch segmentation on the live frame (defaults to selective hazard overlay for authentic drone colors)
+                    seg_result = drone_segmentation_engine.segment(
+                        frame_img,
+                        gsd_m=0.10,
+                        hazard_only=(overlay_mode == "hazard_only")
+                    )
                     
                     # Encode frame JPEG to base64
                     buf = io.BytesIO()
@@ -227,7 +234,8 @@ class DroneLiveStreamSimulator:
                         "telemetry": telemetry,
                         "hazard_summary": seg_result["hazard_summary"],
                         "frame_b64": frame_b64,
-                        "overlay_b64": seg_result["segmentation_mask_b64"] if send_overlay else None
+                        "overlay_b64": seg_result["segmentation_mask_b64"] if send_overlay else None,
+                        "overlay_mode": overlay_mode
                     }
 
                     await websocket.send_json(payload)

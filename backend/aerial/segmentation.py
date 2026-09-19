@@ -25,13 +25,13 @@ import torch.nn.functional as F
 
 # ── Classes & Styling Specification ──────────────────────────────────────────
 AERIAL_CLASSES = {
-    0: {"name": "non-flooded", "label": "Non-Flooded Ground", "color": [34, 197, 94, 150], "hex": "#22C55E"},
-    1: {"name": "flooded", "label": "Flooded / Inundated", "color": [6, 182, 212, 190], "hex": "#06B6D4"},
-    2: {"name": "building-intact", "label": "Building (Intact)", "color": [168, 85, 247, 180], "hex": "#A855F7"},
-    3: {"name": "building-damaged", "label": "Building (Damaged)", "color": [239, 68, 68, 220], "hex": "#EF4444"},
-    4: {"name": "road-clear", "label": "Road (Clear / Passable)", "color": [16, 185, 129, 200], "hex": "#10B981"},
-    5: {"name": "road-blocked", "label": "Road (Blocked / Hazard)", "color": [245, 158, 11, 220], "hex": "#F59E0B"},
-    6: {"name": "debris", "label": "Landslide / Debris Flow", "color": [180, 83, 9, 210], "hex": "#B45309"},
+    0: {"name": "non-flooded", "label": "Non-Flooded Ground", "color": [34, 197, 94, 150], "hazard_color": [0, 0, 0, 0], "hex": "#22C55E", "is_hazard": False},
+    1: {"name": "flooded", "label": "Flooded / Inundated", "color": [6, 182, 212, 190], "hazard_color": [6, 182, 212, 190], "hex": "#06B6D4", "is_hazard": True},
+    2: {"name": "building-intact", "label": "Building (Intact)", "color": [168, 85, 247, 180], "hazard_color": [0, 0, 0, 0], "hex": "#A855F7", "is_hazard": False},
+    3: {"name": "building-damaged", "label": "Building (Damaged)", "color": [239, 68, 68, 220], "hazard_color": [239, 68, 68, 220], "hex": "#EF4444", "is_hazard": True},
+    4: {"name": "road-clear", "label": "Road (Clear / Passable)", "color": [16, 185, 129, 200], "hazard_color": [0, 0, 0, 0], "hex": "#10B981", "is_hazard": False},
+    5: {"name": "road-blocked", "label": "Road (Blocked / Hazard)", "color": [245, 158, 11, 220], "hazard_color": [245, 158, 11, 220], "hex": "#F59E0B", "is_hazard": True},
+    6: {"name": "debris", "label": "Landslide / Debris Flow", "color": [245, 158, 11, 215], "hazard_color": [245, 158, 11, 215], "hex": "#F59E0B", "is_hazard": True},
 }
 
 
@@ -145,13 +145,18 @@ class DroneSegmentationEngine:
     def segment(
         self,
         image_input: np.ndarray | Image.Image | str,
-        gsd_m: float = 0.10
+        gsd_m: float = 0.10,
+        hazard_only: bool = True
     ) -> Dict[str, Any]:
         """
         Executes end-to-end multi-class segmentation on a drone image or frame using the trained DeepLabV3+ model.
         Args:
             image_input: NumPy RGB array, PIL Image, or Base64 data URL string.
             gsd_m: Ground Sample Distance in meters per pixel (default: 0.10m = 10cm).
+            hazard_only: When True (default), leaves safe/non-hazard terrain completely transparent (alpha=0)
+                         so the drone image displays in its real authentic colors, and only changes color
+                         for detected Landslide (amber) and Flood (cyan) hazards.
+                         When False, renders the full semantic segmentation mask.
         Returns:
             Dictionary containing:
                 - distribution: % and area for each class (strictly normalized to 100.0%)
@@ -159,6 +164,7 @@ class DroneSegmentationEngine:
                 - segmentation_mask_b64: base64 RGBA visualization
                 - raw_mask: 2D numpy array of class IDs
                 - hazard_summary: summary of blocked roads, flood extent, damaged buildings, model source
+                - hazard_only: boolean indicator of rendering mode
         """
         # 1. Parse Image
         pil_img = self._load_pil_image(image_input)
@@ -296,7 +302,13 @@ class DroneSegmentationEngine:
         for class_id, info in AERIAL_CLASSES.items():
             pts = (class_map_full == class_id)
             if np.any(pts):
-                overlay_rgba[pts] = info["color"]
+                if hazard_only:
+                    # In hazard-only mode: only hazards (flood, landslide, damaged structures) get colored
+                    # Safe ground, clear roads, and intact buildings remain 100% transparent (alpha=0)
+                    overlay_rgba[pts] = info.get("hazard_color", [0, 0, 0, 0])
+                else:
+                    # Full semantic mask mode
+                    overlay_rgba[pts] = info.get("color", [0, 0, 0, 0])
 
         # 7. Encode to Base64 PNG
         buf = io.BytesIO()
@@ -310,6 +322,7 @@ class DroneSegmentationEngine:
             "total_area_m2": total_area_m2,
             "distribution": distribution,
             "hazard_summary": hazard_summary,
+            "hazard_only": hazard_only,
             "segmentation_mask_b64": mask_b64,
             "raw_mask": class_map_full
         }

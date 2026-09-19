@@ -166,6 +166,7 @@ class FetchTileRequest(BaseModel):
     bbox: list[float]
     aoi_id: str = "custom_aoi"
     max_cloud: int = 20
+    force_live: bool = True
 
 class PresetRequest(BaseModel):
     preset_id: str
@@ -197,31 +198,28 @@ async def list_presets():
 async def fetch_tile(req: FetchTileRequest):
     """
     Fetches real Sentinel-2 L2A tile from Copernicus CDSE using bounding box.
-    Caches to disk so repeated clicks hit local cache with 0 ms API delay.
-    Loads genuine independent high-resolution ground truth reference (SPOT 6/7 1.5m).
+    Always streams live directly from Copernicus ESA when force_live is True (default).
+    Eliminates stale disk cache substitution on search/refresh.
     """
     try:
         bbox = copernicus_client.sanitize_bbox(req.bbox)
         time_window = ("2024-03-01", "2024-05-30")
         
+        # Always stream 100% fresh live from ESA Copernicus CDSE API on every request
+        use_cache = False
         tile_data, meta = copernicus_client.fetch_sentinel2_tile(
             bbox_coords=bbox,
             time_window=time_window,
             max_cloud=req.max_cloud,
-            preset_id=req.aoi_id if req.aoi_id != "custom_aoi" else None
+            preset_id=req.aoi_id if req.aoi_id != "custom_aoi" else None,
+            use_cache=use_cache
         )
     except Exception as e:
-        # Fallback to local cached preset if offline or credentials unconfigured
-        cached_candidates = list((BASE_DIR / "cache" / "tiles").glob("*.npy"))
-        if cached_candidates:
-            tile_data = np.load(cached_candidates[0])
-            meta = {
-                "source": "Local Cached Sentinel-2 L2A Tile (Offline Fallback)",
-                "bands": ["B04", "B03", "B02", "B08"],
-                "bbox": req.bbox
-            }
-        else:
-            raise HTTPException(status_code=502, detail=f"Failed to fetch satellite imagery: {str(e)}")
+        print(f"[CopernicusFetch] Live satellite fetch error: {e}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Live Copernicus Sentinel-2 query failed for bounding box {req.bbox}. Error: {str(e)}"
+        )
 
     lr_rgb = tile_data[:, :, :3] if tile_data.shape[2] >= 3 else tile_data
     print(f"[ColorRendering] Display Mapping: Channel 0 -> Red (B04), Channel 1 -> Green (B03), Channel 2 -> Blue (B02) | Channel 3 -> NIR (B08)")
@@ -231,7 +229,7 @@ async def fetch_tile(req: FetchTileRequest):
     target_hr_shape = (lr_rgb.shape[0] * 4, lr_rgb.shape[1] * 4, 3)
     ref_hr, ref_provenance, ref_info = load_reference_for_session(
         aoi_id=req.aoi_id,
-        bbox=req.bbox,
+        bbox=bbox,
         target_shape=target_hr_shape
     )
     has_ref = ref_hr is not None
@@ -289,7 +287,7 @@ async def fetch_tile(req: FetchTileRequest):
         "reference_tier_label": ref_tier_label,
         "bands": meta.get("bands", ["B04 (Red)", "B03 (Green)", "B02 (Blue)", "B08 (NIR)"]),
         "dimensions": f"{lr_rgb.shape[1]} x {lr_rgb.shape[0]} px",
-        "bbox": req.bbox,
+        "bbox": bbox,
         "cloud_coverage_pct": cloud_coverage_pct,
         "cloud_warning": cloud_warning
     }
@@ -297,7 +295,7 @@ async def fetch_tile(req: FetchTileRequest):
     if is_scientific:
         ref_message = f"Genuinely independent SPOT 1.5m Ground Truth loaded ({ref_info.get('file_name', '')}). Paired metrics active."
     elif has_ref:
-        ref_message = f"Tier-3 Global Reference Basemap active (cached: {ref_info.get('file_name', '')}). No-Reference Quality Assessment active."
+        ref_message = f"Tier-3 Global Reference Basemap active ({ref_info.get('file_name', '')}). No-Reference Quality Assessment active."
     else:
         ref_message = "Unpaired scene — no reference exists for this AOI. No-Reference Quality Assessment active."
 
@@ -314,6 +312,8 @@ async def fetch_tile(req: FetchTileRequest):
 
     return {
         "status": "success",
+        "is_live": meta.get("source") == "live_copernicus_cdse",
+        "source": meta.get("source", "Copernicus CDSE Sentinel-2 L2A"),
         "metadata": current_session["metadata"],
         "has_reference": has_ref,
         "is_scientific_ground_truth": is_scientific,
@@ -329,7 +329,7 @@ async def fetch_tile(req: FetchTileRequest):
             "is_index": False,
             "legend": vis_info["legend"]
         },
-        "lr_preview": array_to_base64_png(lr_rgb, esri_target=esri_basemap_lr),
+        "lr_preview": array_to_base64_png(lr_rgb, esri_target=esri_basemap_lr if cloud_coverage_pct <= 20.0 else None),
         "hr_preview": array_to_base64_png(ref_hr) if has_ref else None,
         "cloud_mask_preview": cloud_preview,
         "cloud_coverage_pct": cloud_coverage_pct,
@@ -368,20 +368,12 @@ async def fetch_multi_temporal(req: MultiTemporalRequest | None = None):
             )
             source_note = meta.get("source", source_note)
         except Exception as e:
-            print(f"[Multi-Temporal] Live Copernicus fetch notice: {e}. Checking disk cache...")
+            print(f"[Multi-Temporal] Live Copernicus fetch notice: {e}. Using active session in-memory...")
 
-    # 2. Check disk cache if live fetch did not return
+    # 2. Fallback to active session in-memory
     if fused_lr is None:
-        fused_cache = BASE_DIR / "cache" / "tiles" / f"{req.aoi_id}_multitemporal_fused.npy"
-        if not fused_cache.exists():
-            fused_cache = BASE_DIR / "cache" / "tiles" / "punjab_agri_multitemporal_fused.npy"
-
-        if fused_cache.exists():
-            fused_lr = np.load(fused_cache).astype(np.float32)
-            source_note = "3-Pass Temporal Median Fusion (Cached Sentinel-2 L2A)"
-        else:
-            fused_lr = current_session.get("lr")
-            source_note = "Single-pass fallback"
+        fused_lr = current_session.get("lr")
+        source_note = "Single-pass fallback"
 
     if fused_lr is None:
         p = CopernicusClient.get_demo_presets()[0]
@@ -639,7 +631,9 @@ async def super_resolve(req: SRRequest | None = None):
 
     # Stage 3: Dynamic per-AOI color matching via Reinhard LAB transfer against Esri Basemap
     # (Final display-only step for true-color mode; leaves underlying analysis data/metrics untouched)
-    if active_mode == "true_color":
+    # Bypassed if scene has heavy clouds (>20%) because bright cloud reflectance distorts the global CIELAB mean/std
+    cloud_pct = current_session.get("cloud_coverage_pct", 0.0)
+    if active_mode == "true_color" and cloud_pct <= 20.0:
         esri_basemap = get_or_fetch_esri_basemap(
             bbox=active_bbox,
             aoi_id=active_aoi,
@@ -650,6 +644,8 @@ async def super_resolve(req: SRRequest | None = None):
             matched_sr = apply_reinhard_color_transfer(disp_float, esri_basemap)
             display_sr = (matched_sr * 255.0).astype(np.uint8)
             print(f"[ColorMatching] Applied dynamic Reinhard LAB color transfer from Esri basemap for AOI '{active_aoi}'")
+    elif active_mode == "true_color" and cloud_pct > 20.0:
+        print(f"[ColorMatching] Bypassing Reinhard LAB transfer: scene has {cloud_pct}% cloud cover (preserves natural Sentinel-2 colors)")
 
     # Encode display preview
     disp_uint8 = (np.clip(display_sr, 0.0, 1.0) * 255.0).astype(np.uint8) if display_sr.dtype != np.uint8 else display_sr
