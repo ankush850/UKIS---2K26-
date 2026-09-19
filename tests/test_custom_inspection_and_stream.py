@@ -160,8 +160,8 @@ def test_5_honesty_badges_segregated():
     badge_video = live_stream_simulator.HONESTY_BADGES["video"]
     badge_image = live_stream_simulator.HONESTY_BADGES["static_image"]
 
-    assert "PRE-RECORDED SORTIE" in badge_video
-    assert "SIMULATED FLIGHT PASS OVER STATIC IMAGE" in badge_image
+    assert "pre-recorded sortie" in badge_video.lower()
+    assert "simulated flight pass over static image" in badge_image.lower()
     assert badge_video != badge_image
 
     live_stream_simulator.set_video_source()

@@ -231,7 +231,7 @@ def determine_reference_tier(aoi_id: str | None = None, bbox: list[float] | None
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     if bbox and len(bbox) == 4:
-        bbox_clean = [round(float(c), 4) for c in bbox]
+        bbox_clean = [round(float(c), 5) for c in bbox]
         bbox_hash = hashlib.md5(f"{bbox_clean}".encode("utf-8")).hexdigest()[:8]
     else:
         bbox_hash = "default"
@@ -361,7 +361,7 @@ def load_reference_for_session(
             pil_ref = PILImage.fromarray(ref_uint8).resize((target_w, target_h), PILImage.Resampling.LANCZOS)
             ref_hr = np.asarray(pil_ref, dtype=np.float32) / 255.0
 
-        provenance_str = f"[Tier-3 Fallback] Global Reference Basemap (variable resolution) — {tier_info.get('source', '')} (cached: {tier_info.get('file_name', '')})"
+        provenance_str = f"[Tier-3 Fallback] Global Reference Basemap (variable resolution) — {tier_info.get('source', '')} ({tier_info.get('file_name', '')})"
         print(f"[Validation Reference] Tier-3 Global Reference Basemap loaded: {provenance_str}")
         print(f"[Validation Reference] Shape: {ref_hr.shape}, Reflectance Range: [{float(np.min(ref_hr)):.4f}, {float(np.max(ref_hr)):.4f}]")
         return ref_hr, provenance_str, tier_info
@@ -446,7 +446,7 @@ def get_or_fetch_esri_basemap(
     # 3. Hash-based check
     if candidate_file is None:
         if resolved_bbox and len(resolved_bbox) == 4:
-            bbox_clean = [round(float(c), 4) for c in resolved_bbox]
+            bbox_clean = [round(float(c), 5) for c in resolved_bbox]
             bbox_hash = hashlib.md5(f"{bbox_clean}".encode("utf-8")).hexdigest()[:8]
         else:
             bbox_hash = "default"
